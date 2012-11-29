@@ -48,6 +48,20 @@
 
 static uint32_t iface_rr = 0;
 
+int
+iscsi_pdu_blocks_outqueue(struct iscsi_context *iscsi, struct iscsi_pdu *pdu) {
+	enum iscsi_opcode opcode;
+	opcode = pdu->outdata.data[0] & 0x3f;
+	/* Data-Out PDUs do not carry a CmdSN and thus cannot block the outqueue */
+	if (opcode == ISCSI_PDU_DATA_OUT) {
+		return 0;
+	}
+	if (iscsi_serial32_compare(pdu->cmdsn, iscsi->maxcmdsn) <= 0) {
+		return 0;
+	}
+	return 1;
+}
+
 void
 iscsi_add_to_outqueue(struct iscsi_context *iscsi, struct iscsi_pdu *pdu)
 {
@@ -332,7 +346,7 @@ iscsi_which_events(struct iscsi_context *iscsi)
 {
 	int events = iscsi->is_connected ? POLLIN : POLLOUT;
 
-	if (iscsi->outqueue && iscsi_serial32_compare(iscsi->outqueue->cmdsn, iscsi->maxcmdsn) <= 0) {
+	if (iscsi->outqueue && !iscsi_pdu_blocks_outqueue(iscsi, iscsi->outqueue)) {
 	 	events |= POLLOUT;
 	}
 	return events;
@@ -472,7 +486,7 @@ iscsi_write_to_socket(struct iscsi_context *iscsi)
 	while (iscsi->outqueue) {
 		ssize_t total;
 
-		if (iscsi_serial32_compare(iscsi->outqueue->cmdsn, iscsi->maxcmdsn) > 0) {
+		if (iscsi_pdu_blocks_outqueue(iscsi, iscsi->outqueue)) {
 			/* stop sending. maxcmdsn is reached */
 			return 0;
 		}
