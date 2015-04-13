@@ -111,7 +111,6 @@ struct iscsi_context {
 	int secneg_phase;
 	int login_attempts;
 	int is_loggedin;
-	int is_reconnecting;
 	int bind_interfaces_cnt;
 	int nops_in_flight;
 
@@ -154,8 +153,10 @@ struct iscsi_context {
 	int smalloc_free;
 	size_t smalloc_size;
 
-	time_t last_reconnect;
+	time_t next_reconnect;
 	int scsi_timeout;
+	struct iscsi_context *old_iscsi;
+	int retry_cnt;
 };
 
 #define ISCSI_PDU_IMMEDIATE		       0x40
