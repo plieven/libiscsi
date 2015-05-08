@@ -33,6 +33,15 @@
 #include "iscsi-private.h"
 #include "slist.h"
 
+/**
+ * Whether or not the internal memory allocator caches allocations. Disable
+ * memory allocation caching to improve the accuracy of Valgrind reports.
+ */
+void iscsi_set_cache_allocations(struct iscsi_context *iscsi, int ca)
+{
+	iscsi->cache_allocations = ca;
+}
+
 void* iscsi_malloc(struct iscsi_context *iscsi, size_t size) {
 	void * ptr = malloc(size);
 	if (ptr != NULL) iscsi->mallocs++;
@@ -85,19 +94,16 @@ void iscsi_sfree(struct iscsi_context *iscsi, void* ptr) {
 	if (ptr == NULL) {
 		return;
 	}
-	if (iscsi->smalloc_free == SMALL_ALLOC_MAX_FREE) {
-		int i;
-		/* SMALL_ALLOC_MAX_FREE should be adjusted that this happens rarely */
+	if (!iscsi->cache_allocations) {
+		iscsi_free(iscsi, ptr);
+	} else if (iscsi->smalloc_free == SMALL_ALLOC_MAX_FREE) {
+		/* SMALL_ALLOC_MAX_FREE should be adjusted that this */
+		/* happens rarely */
 		ISCSI_LOG(iscsi, 6, "smalloc free == SMALLOC_MAX_FREE");
-		/* remove oldest half of free pointers and copy
-		 * upper half to lower half */
-		iscsi->smalloc_free >>= 1;
-		for (i = 0; i < iscsi->smalloc_free; i++) {
-			iscsi_free(iscsi, iscsi->smalloc_ptrs[i]);
-			iscsi->smalloc_ptrs[i] = iscsi->smalloc_ptrs[i + iscsi->smalloc_free];
-		}
+		iscsi_free(iscsi, ptr);
+	} else {
+		iscsi->smalloc_ptrs[iscsi->smalloc_free++] = ptr;
 	}
-	iscsi->smalloc_ptrs[iscsi->smalloc_free++] = ptr;
 }
 
 struct iscsi_context *
@@ -105,6 +111,7 @@ iscsi_create_context(const char *initiator_name)
 {
 	struct iscsi_context *iscsi;
 	size_t required = ISCSI_RAW_HEADER_SIZE + ISCSI_DIGEST_SIZE;
+	char *ca;
 
 	if (!initiator_name[0]) {
 		return NULL;
@@ -186,6 +193,11 @@ iscsi_create_context(const char *initiator_name)
 		iscsi->smalloc_size <<= 1;
 	}
 	ISCSI_LOG(iscsi,5,"small allocation size is %d byte", iscsi->smalloc_size);
+
+	ca = getenv("LIBISCSI_CACHE_ALLOCATIONS");
+	if (!ca || atoi(ca) != 0) {
+		iscsi->cache_allocations = 1;
+	}
 
 	return iscsi;
 }

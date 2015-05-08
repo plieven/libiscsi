@@ -100,6 +100,9 @@ static CU_TestInfo tests_mandatory[] = {
 
 static CU_TestInfo tests_modesense6[] = {
 	{ (char *)"AllPages", test_modesense6_all_pages },
+	{ (char *)"Control", test_modesense6_control },
+	{ (char *)"Control-D_SENSE", test_modesense6_control_d_sense },
+	{ (char *)"Control-SWP", test_modesense6_control_swp },
 	{ (char *)"Residuals", test_modesense6_residuals },
 	CU_TEST_INFO_NULL
 };
@@ -1034,7 +1037,7 @@ main(int argc, char *argv[])
 		if (!strncmp(argv[optind], "iscsi://", 8)) {
 			sd->iscsi_url = strdup(argv[optind++]);
 #ifdef HAVE_SG_IO
-		} else if (!strncmp(argv[optind], "/dev/sg", 7)) {
+		} else {
 			sd->sgio_dev = strdup(argv[optind++]);
 #endif
 		}
@@ -1050,7 +1053,7 @@ main(int argc, char *argv[])
 
 	if (sd->iscsi_url == NULL && sd->sgio_dev== NULL ) {
 #ifdef HAVE_SG_IO
-		fprintf(stderr, "You must specify either an iSCSI URL or a /dev/sg device\n");
+		fprintf(stderr, "You must specify either an iSCSI URL or a device file\n");
 #else
 		fprintf(stderr, "You must specify either an iSCSI URL\n");
 #endif

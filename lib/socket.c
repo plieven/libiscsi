@@ -377,7 +377,8 @@ iscsi_disconnect(struct iscsi_context *iscsi)
 
 	close(iscsi->fd);
 
-	if (!iscsi->pending_reconnect && iscsi->connected_portal[0]) {
+	if (!(iscsi->pending_reconnect && iscsi->old_iscsi) &&
+	    iscsi->connected_portal[0]) {
 		ISCSI_LOG(iscsi, 2, "disconnected from portal %s",iscsi->connected_portal);
 	}
 
@@ -785,6 +786,8 @@ iscsi_service_reconnect_if_loggedin(struct iscsi_context *iscsi)
 		}
 		return 0;
 	}
+	iscsi_set_error(iscsi, "iscsi_service_reconnect_if_loggedin. Can not "
+			"reconnect right now.\n");
 	return -1;
 }
 
@@ -876,17 +879,16 @@ iscsi_service(struct iscsi_context *iscsi, int revents)
 		return 0;
 	}
 
-	if (revents & POLLOUT && (iscsi->outqueue != NULL || iscsi->outqueue_current != NULL)) {
-		if (iscsi_write_to_socket(iscsi) != 0) {
-			return iscsi_service_reconnect_if_loggedin(iscsi);
-		}
-	}
 	if (revents & POLLIN) {
 		if (iscsi_read_from_socket(iscsi) != 0) {
 			return iscsi_service_reconnect_if_loggedin(iscsi);
 		}
 	}
-
+	if (revents & POLLOUT) {
+		if (iscsi_write_to_socket(iscsi) != 0) {
+			return iscsi_service_reconnect_if_loggedin(iscsi);
+		}
+	}
 	return 0;
 }
 

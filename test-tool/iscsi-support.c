@@ -135,7 +135,8 @@ static int status_is_invalid_opcode(struct scsi_task *task)
 			switch (task->sense.ascq) {
 			case SCSI_SENSE_ASCQ_INVALID_FIELD_IN_CDB:
 			case SCSI_SENSE_ASCQ_INVALID_FIELD_IN_PARAMETER_LIST:
-				return 1;
+				return !task->sense.sense_specific ||
+					task->sense.field_pointer == 1;
 			}
 		}
 	}
@@ -196,13 +197,14 @@ static int check_result(const char *opcode, struct scsi_device *sdev,
 	     || task->sense.key  != key
 	     || !ascq_ok)) {
 		logging(LOG_NORMAL, "[FAILED] %s failed with wrong sense. "
-			"Should have failed with %s(0x%02x)/%s(0x%04x)"
-			"but failed with Sense:%s\n",
+			"Should have failed with %s(0x%02x)/%s(0x%04x) "
+			"but failed with Sense: %s(0x%02x)/(0x%04x)\n",
 			opcode,
 			scsi_sense_key_str(key), key,
 			num_ascq ? scsi_sense_ascq_str(ascq[0]) : "NO ASCQ",
 			num_ascq ? ascq[0] : 0,
-			sdev->error_str);
+			sdev->error_str,
+			task->sense.key, task->sense.ascq);
 		return -1;
 	}
 	logging(LOG_VERBOSE, "[OK] %s returned %s %s(0x%02x) %s(0x%04x)",
@@ -210,6 +212,16 @@ static int check_result(const char *opcode, struct scsi_device *sdev,
 		scsi_sense_key_str(task->sense.key), task->sense.key,
 		scsi_sense_ascq_str(task->sense.ascq), task->sense.ascq);
 	return 0;
+}
+
+static size_t iov_tot_len(struct scsi_iovec *iov, int niov)
+{
+	size_t len = 0;
+	int i;
+
+	for (i = 0; i < niov; i++)
+		len += iov[i].iov_len;
+	return len;
 }
 
 static struct scsi_task *send_scsi_command(struct scsi_device *sdev, struct scsi_task *task, struct iscsi_data *d)
@@ -226,6 +238,19 @@ static struct scsi_task *send_scsi_command(struct scsi_device *sdev, struct scsi
 
 		return task;
 	}
+
+	/* We got an actual buffer from the application. Convert it to
+	 * a data-out iovector.
+	 */
+	if (d != NULL && d->data != NULL) {
+		struct scsi_iovec *iov;
+
+		iov = scsi_malloc(task, sizeof(struct scsi_iovec));
+		iov->iov_base = d->data;
+		iov->iov_len  = d->size;
+		scsi_task_set_iov_out(task, iov, 1);
+	}
+
 
 #ifdef HAVE_SG_IO
 	if (sdev->sgio_dev) {
@@ -253,8 +278,10 @@ static struct scsi_task *send_scsi_command(struct scsi_device *sdev, struct scsi
 		switch (task->xfer_dir) {
 		case SCSI_XFER_WRITE:
 		  io_hdr.dxfer_direction = SG_DXFER_TO_DEV;
-		  io_hdr.dxferp = d->data;
-		  io_hdr.dxfer_len = d->size;
+		  io_hdr.iovec_count = task->iovector_out.niov;
+		  io_hdr.dxferp = task->iovector_out.iov;
+		  io_hdr.dxfer_len = iov_tot_len(task->iovector_out.iov,
+						 task->iovector_out.niov);
 		  break;
 		case SCSI_XFER_READ:
 		  io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
@@ -291,19 +318,7 @@ static struct scsi_task *send_scsi_command(struct scsi_device *sdev, struct scsi
 		/* now for the error processing */
 		if(io_hdr.sb_len_wr > 0){
 			task->status = SCSI_STATUS_CHECK_CONDITION;
-			task->sense.error_type = sense[0] & 0x7f;
-			switch (task->sense.error_type) {
-			case 0x70:
-			case 0x71:
-				task->sense.key = sense[2] & 0x0f;
-				task->sense.ascq  = scsi_get_uint16(&sense[12]);
-				break;
-			case 0x72:
-			case 0x73:
-				task->sense.key = sense[1] & 0x0f;
-				task->sense.ascq = scsi_get_uint16(&sense[2]);
-				break;
-			}
+			scsi_parse_sense_data(&task->sense, sense);
 			sense_len=io_hdr.sb_len_wr;
 			snprintf(buf, sizeof(buf), "SENSE KEY:%s(%d) ASCQ:%s(0x%04x)",
 				 scsi_sense_key_str(task->sense.key),

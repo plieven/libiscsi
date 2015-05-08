@@ -4,9 +4,9 @@ AC_CONFIG_SRCDIR([lib/init.c])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
-AM_SILENT_RULES
-m4_pattern_allow([AM_PROG_AR])
-AM_PROG_AR
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+AC_PROG_LIBTOOL
 LT_INIT
 
 AC_CANONICAL_HOST
@@ -133,10 +133,11 @@ AC_SEARCH_LIBS(clock_gettime, rt, [
 
 
 AC_CONFIG_FILES([Makefile]
-		[lib/Makefile]
 		[doc/Makefile]
-		[utils/Makefile]
-		[test-tool/Makefile]
 		[examples/Makefile]
+		[lib/Makefile]
+		[test-tool/Makefile]
+		[tests/Makefile]
+		[utils/Makefile]
 		[libiscsi.pc])
 AC_OUTPUT

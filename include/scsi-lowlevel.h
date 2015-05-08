@@ -245,10 +245,25 @@ struct scsi_report_supported_params {
 	int return_timeouts;
 };
 
+#define SCSI_SENSE_FIXED_CURRENT              0x70
+#define SCSI_SENSE_FIXED_DEFERRED_ERRORS      0x71
+#define SCSI_SENSE_DESCRIPTOR_CURRENT         0x72
+#define SCSI_SENSE_DESCRIPTOR_DEFERRED_ERRORS 0x73
+
 struct scsi_sense {
 	unsigned char       error_type;
 	enum scsi_sense_key key;
 	int                 ascq;
+
+	/*
+	 * Sense specific descriptor. See also paragraph "Sense key specific
+	 * sense data descriptor" in SPC.
+	 */
+	unsigned            sense_specific:1;
+	unsigned            ill_param_in_cdb:1;
+	unsigned            bit_pointer_valid:1;
+	unsigned char       bit_pointer;
+	uint16_t            field_pointer;
 };
 
 struct scsi_data {
@@ -1045,6 +1060,8 @@ struct scsi_write16_cdb {
 EXTERN int scsi_datain_getfullsize(struct scsi_task *task);
 EXTERN void *scsi_datain_unmarshall(struct scsi_task *task);
 EXTERN void *scsi_cdb_unmarshall(struct scsi_task *task, enum scsi_opcode opcode);
+
+EXTERN void scsi_parse_sense_data(struct scsi_sense *sense, const uint8_t *sb);
 
 EXTERN struct scsi_task *scsi_cdb_compareandwrite(uint64_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int fua, int fua_nv, int group_number);
 EXTERN struct scsi_task *scsi_cdb_get_lba_status(uint64_t starting_lba, uint32_t alloc_len);

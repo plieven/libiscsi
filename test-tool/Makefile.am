@@ -1,4 +1,5 @@
-AM_CPPFLAGS=-I. -I../include "-D_U_=__attribute__((unused))" \
+AM_CPPFLAGS=-I. -I${srcdir}/../include \
+	"-D_U_=__attribute__((unused)) " \
 	"-D_R_(A,B)=__attribute__((format(printf,A,B)))"
 AM_CFLAGS=$(WARN_CFLAGS)
 LDADD = ../lib/libiscsi.la
@@ -32,6 +33,9 @@ iscsi_test_cu_SOURCES = iscsi-test-cu.c \
 	test_iscsi_datasn_invalid.c \
 	test_mandatory_sbc.c \
 	test_modesense6_all_pages.c \
+	test_modesense6_control.c \
+	test_modesense6_control_d_sense.c \
+	test_modesense6_control_swp.c \
 	test_modesense6_residuals.c \
 	test_nomedia_sbc.c \
 	test_orwrite_simple.c \
