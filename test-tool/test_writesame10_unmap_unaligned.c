@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -28,23 +29,20 @@
 void
 test_writesame10_unmap_unaligned(void)
 {
-	int i, ret;
-	unsigned char *buf = alloca(block_size);
+        int i;
 
-	CHECK_FOR_DATALOSS;
-	CHECK_FOR_THIN_PROVISIONING;
-	CHECK_FOR_LBPWS10;
-	CHECK_FOR_LBPPB_GT_1;
-	CHECK_FOR_SBC;
+        CHECK_FOR_DATALOSS;
+        CHECK_FOR_THIN_PROVISIONING;
+        CHECK_FOR_LBPWS10;
+        CHECK_FOR_LBPPB_GT_1;
+        CHECK_FOR_SBC;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test that unaligned WRITESAME10 Unmap succeeds. LBPPB==%d", lbppb);
-	memset(buf, 0xa6, block_size);
-	for (i = 1; i < lbppb; i++) {
-		logging(LOG_VERBOSE, "Unmap %d blocks using WRITESAME10 at LBA:%d", lbppb - i, i);
-		ret = writesame10(sd, i,
-				  block_size, lbppb - i, 0, 1, 0, 0, buf,
-				  EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test that unaligned WRITESAME10 Unmap succeeds. LBPPB==%d", lbppb);
+        memset(scratch, 0xa6, block_size);
+        for (i = 1; i < lbppb; i++) {
+                logging(LOG_VERBOSE, "Unmap %d blocks using WRITESAME10 at LBA:%d", lbppb - i, i);
+                WRITESAME10(sd, i, block_size, lbppb - i, 0, 1, 0, 0, scratch,
+                            EXPECT_STATUS_GOOD);
+        }
 }

@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronneisahlberg@gmail.com>
    
@@ -28,67 +29,54 @@
 void
 test_write12_beyond_eol(void)
 { 
-	int i, ret;
-	unsigned char *buf = alloca(256 * block_size);
+        int i;
 
-	CHECK_FOR_DATALOSS;
+        CHECK_FOR_DATALOSS;
 
-	if (num_blocks >= 0x80000000) {
-		CU_PASS("LUN is too big for write-beyond-eol tests with WRITE12. Skipping test.\n");
-		return;
-	}
+        if (num_blocks >= 0x80000000) {
+                CU_PASS("LUN is too big for write-beyond-eol tests with WRITE12. Skipping test.\n");
+                return;
+        }
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test WRITE12 1-256 blocks one block beyond the end");
-	memset(buf, 0xa6, 256 * block_size);
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = write12(sd, num_blocks + 1 - i,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] WRITE12 is not implemented.");
-			CU_PASS("WRITE12 is not implemented.");
-			return;
-		}	
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test WRITE12 1-256 blocks one block beyond the end");
+        memset(scratch, 0xa6, 256 * block_size);
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                WRITE12(sd, num_blocks + 1 - i,
+                        i * block_size, block_size, 0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 
+        logging(LOG_VERBOSE, "Test WRITE12 1-256 blocks at LBA==2^31");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                WRITE12(sd, 0x80000000,
+                        i * block_size, block_size, 0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 
-	logging(LOG_VERBOSE, "Test WRITE12 1-256 blocks at LBA==2^31");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = write12(sd, 0x80000000,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, "Test WRITE12 1-256 blocks at LBA==-1");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                WRITE12(sd, -1, i * block_size,
+                        block_size, 0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 
-
-	logging(LOG_VERBOSE, "Test WRITE12 1-256 blocks at LBA==-1");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = write12(sd, -1, i * block_size,
-			      block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
-
-
-	logging(LOG_VERBOSE, "Test WRITE12 2-256 blocks all but one block beyond the end");
-	for (i = 2; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = write12(sd, num_blocks - 1,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, "Test WRITE12 2-256 blocks all but one block beyond the end");
+        for (i = 2; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                WRITE12(sd, num_blocks - 1,
+                        i * block_size, block_size, 0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 }

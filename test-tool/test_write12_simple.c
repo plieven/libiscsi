@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -29,38 +30,29 @@
 void
 test_write12_simple(void)
 {
-	int i, ret;
-	unsigned char *buf = alloca(256 * block_size);
+        int i;
+        
+        CHECK_FOR_DATALOSS;
 
-	CHECK_FOR_DATALOSS;
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test WRITE12 of 1-256 blocks at the start of the LUN");
+        memset(scratch, 0xa6, 256 * block_size);
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                WRITE12(sd, 0, i * block_size, block_size,
+                        0, 0, 0, 0, 0, scratch,
+                        EXPECT_STATUS_GOOD);
+        }
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test WRITE12 of 1-256 blocks at the start of the LUN");
-	memset(buf, 0xa6, 256 * block_size);
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = write12(sd, 0, i * block_size,
-			      block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_STATUS_GOOD);
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] WRITE12 is not implemented.");
-			CU_PASS("WRITE12 is not implemented.");
-			return;
-		}	
-		CU_ASSERT_EQUAL(ret, 0);
-	}
-
-	logging(LOG_VERBOSE, "Test WRITE12 of 1-256 blocks at the end of the LUN");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = write12(sd, num_blocks - i,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
-
+        logging(LOG_VERBOSE, "Test WRITE12 of 1-256 blocks at the end of the LUN");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                WRITE12(sd, num_blocks - i,
+                        i * block_size, block_size, 0, 0, 0, 0, 0, scratch,
+                        EXPECT_STATUS_GOOD);
+        }
 }

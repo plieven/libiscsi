@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2012 by Lee Duncan <lee@gonzoleeman.net>
    
@@ -28,30 +29,26 @@
 void
 test_read10_simple(void)
 {
-	int i, ret;
+        int i;
 
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test READ10 of 1-256 blocks at the start of the LUN");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                READ10(sd, NULL, 0, i * block_size,
+                       block_size, 0, 0, 0, 0, 0, NULL,
+                       EXPECT_STATUS_GOOD);
+        }
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test READ10 of 1-256 blocks at the start of the LUN");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = read10(sd, NULL, 0, i * block_size,
-			     block_size, 0, 0, 0, 0, 0, NULL,
-			     EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
-
-
-	logging(LOG_VERBOSE, "Test READ10 of 1-256 blocks at the end of the LUN");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = read10(sd, NULL, num_blocks - i,
-			     i * block_size, block_size, 0, 0, 0, 0, 0, NULL,
-			     EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, "Test READ10 of 1-256 blocks at the end of the LUN");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                READ10(sd, NULL, num_blocks - i,
+                       i * block_size, block_size, 0, 0, 0, 0, 0, NULL,
+                       EXPECT_STATUS_GOOD);
+        }
 }

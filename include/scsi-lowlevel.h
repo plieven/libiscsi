@@ -54,6 +54,8 @@ enum scsi_opcode {
 	SCSI_OPCODE_MODESENSE10        = 0x5A,
 	SCSI_OPCODE_PERSISTENT_RESERVE_IN  = 0x5E,
 	SCSI_OPCODE_PERSISTENT_RESERVE_OUT = 0x5F,
+	SCSI_OPCODE_EXTENDED_COPY      = 0x83,
+	SCSI_OPCODE_RECEIVE_COPY_RESULTS = 0x84,
 	SCSI_OPCODE_READ16             = 0x88,
 	SCSI_OPCODE_COMPARE_AND_WRITE  = 0x89,
 	SCSI_OPCODE_WRITE16            = 0x8A,
@@ -63,6 +65,7 @@ enum scsi_opcode {
 	SCSI_OPCODE_PREFETCH16         = 0x90,
 	SCSI_OPCODE_SYNCHRONIZECACHE16 = 0x91,
 	SCSI_OPCODE_WRITE_SAME16       = 0x93,
+	SCSI_OPCODE_WRITE_ATOMIC16     = 0x9C,
 	SCSI_OPCODE_SERVICE_ACTION_IN  = 0x9E,
 	SCSI_OPCODE_REPORTLUNS         = 0xA0,
 	SCSI_OPCODE_MAINTENANCE_IN     = 0xA3,
@@ -148,7 +151,10 @@ enum scsi_sense_key {
 EXTERN const char *scsi_sense_key_str(int key);
 
 /* ascq */
+#define SCSI_SENSE_ASCQ_NO_ADDL_SENSE			   0x0000
 #define SCSI_SENSE_ASCQ_SANITIZE_IN_PROGRESS               0x041b
+#define SCSI_SENSE_ASCQ_UNREACHABLE_COPY_TARGET		   0x0804
+#define SCSI_SENSE_ASCQ_COPY_TARGET_DEVICE_NOT_REACHABLE   0x0d02
 #define SCSI_SENSE_ASCQ_WRITE_AFTER_SANITIZE_REQUIRED      0x1115
 #define SCSI_SENSE_ASCQ_PARAMETER_LIST_LENGTH_ERROR        0x1a00
 #define SCSI_SENSE_ASCQ_MISCOMPARE_DURING_VERIFY           0x1d00
@@ -158,6 +164,10 @@ EXTERN const char *scsi_sense_key_str(int key);
 #define SCSI_SENSE_ASCQ_INVALID_FIELD_IN_CDB               0x2400
 #define SCSI_SENSE_ASCQ_LOGICAL_UNIT_NOT_SUPPORTED         0x2500
 #define SCSI_SENSE_ASCQ_INVALID_FIELD_IN_PARAMETER_LIST    0x2600
+#define SCSI_SENSE_ASCQ_TOO_MANY_TARGET_DESCRIPTORS	   0x2606
+#define SCSI_SENSE_ASCQ_UNSUPPORTED_TARGET_DESCRIPTOR_TYPE_CODE 0x2607
+#define SCSI_SENSE_ASCQ_TOO_MANY_SEGMENT_DESCRIPTORS	   0x2608
+#define SCSI_SENSE_ASCQ_UNSUPPORTED_SEGMENT_DESCRIPTOR_TYPE_CODE 0x2609
 #define SCSI_SENSE_ASCQ_WRITE_PROTECTED                    0x2700
 #define SCSI_SENSE_ASCQ_HARDWARE_WRITE_PROTECTED           0x2701
 #define SCSI_SENSE_ASCQ_SOFTWARE_WRITE_PROTECTED           0x2702
@@ -347,7 +357,6 @@ EXTERN struct scsi_task *scsi_cdb_testunitready(void);
 
 EXTERN struct scsi_task *scsi_cdb_sanitize(int immed, int ause, int sa,
        int param_len);
-
 
 /*
  * REPORTLUNS
@@ -549,6 +558,11 @@ struct scsi_inquiry_block_limits {
 	int ugavalid;
 	uint32_t unmap_gran_align;		/* unmap_granularity_alignment */
 	uint64_t max_ws_len;			/* maximum_write_same_length */
+
+	/* SBC-4 */
+	uint32_t max_atomic_xfer_len;
+	uint32_t atomic_align;
+	uint32_t atomic_gran;
 };
 
 struct scsi_inquiry_block_device_characteristics {
@@ -931,6 +945,22 @@ struct scsi_persistent_reserve_in_read_reservation {
        unsigned char pr_type;
 };
 
+enum scsi_persistent_reservation_type_mask {
+     SCSI_PR_TYPE_MASK_EX_AC_AR	= (1 << 0),
+     SCSI_PR_TYPE_MASK_WR_EX   	= (1 << 9),
+     SCSI_PR_TYPE_MASK_EX_AC   	= (1 << 11),
+     SCSI_PR_TYPE_MASK_WR_EX_RO	= (1 << 13),
+     SCSI_PR_TYPE_MASK_EX_AC_RO	= (1 << 14),
+     SCSI_PR_TYPE_MASK_WR_EX_AR	= (1 << 15),
+
+     SCSI_PR_TYPE_MASK_ALL	= (SCSI_PR_TYPE_MASK_EX_AC_AR
+				 | SCSI_PR_TYPE_MASK_WR_EX
+				 | SCSI_PR_TYPE_MASK_EX_AC
+				 | SCSI_PR_TYPE_MASK_WR_EX_RO
+				 | SCSI_PR_TYPE_MASK_EX_AC_RO
+				 | SCSI_PR_TYPE_MASK_WR_EX_AR)
+};
+
 struct scsi_persistent_reserve_in_report_capabilities {
        uint16_t length;
        uint8_t  crh;
@@ -1057,6 +1087,17 @@ struct scsi_write16_cdb {
 	uint8_t  control;
 };
 
+struct scsi_writeatomic16_cdb {
+	enum scsi_opcode opcode;
+	uint8_t  wrprotect;
+	uint8_t  dpo;
+	uint8_t  fua;
+	uint32_t lba;
+	uint16_t transfer_length;
+	uint8_t  group;
+	uint8_t  control;
+};
+
 EXTERN int scsi_datain_getfullsize(struct scsi_task *task);
 EXTERN void *scsi_datain_unmarshall(struct scsi_task *task);
 EXTERN void *scsi_cdb_unmarshall(struct scsi_task *task, enum scsi_opcode opcode);
@@ -1088,6 +1129,7 @@ EXTERN struct scsi_task *scsi_cdb_verify16(uint64_t lba, uint32_t xferlen, int v
 EXTERN struct scsi_task *scsi_cdb_write10(uint32_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int fua, int fua_nv, int group_number);
 EXTERN struct scsi_task *scsi_cdb_write12(uint32_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int fua, int fua_nv, int group_number);
 EXTERN struct scsi_task *scsi_cdb_write16(uint64_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int fua, int fua_nv, int group_number);
+EXTERN struct scsi_task *scsi_cdb_writeatomic16(uint64_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int fua, int group_number);
 EXTERN struct scsi_task *scsi_cdb_writesame10(int wrprotect, int anchor, int unmap, uint32_t lba, int group, uint16_t num_blocks, uint32_t datalen);
 EXTERN struct scsi_task *scsi_cdb_writesame16(int wrprotect, int anchor, int unmap, uint64_t lba, int group, uint32_t num_blocks, uint32_t datalen);
 EXTERN struct scsi_task *scsi_cdb_writeverify10(uint32_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int bytchk, int group_number);
@@ -1095,6 +1137,78 @@ EXTERN struct scsi_task *scsi_cdb_writeverify12(uint32_t lba, uint32_t xferlen, 
 EXTERN struct scsi_task *scsi_cdb_writeverify16(uint64_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int bytchk, int group_number);
 
 
+/*
+ * EXTENDED COPY
+ */
+#define XCOPY_DESC_OFFSET 16
+#define SEG_DESC_SRC_INDEX_OFFSET 4
+enum list_id_usage {
+	LIST_ID_USAGE_HOLD = 0,
+	LIST_ID_USAGE_DISCARD = 2,
+	LIST_ID_USAGE_DISABLE = 3
+};
+
+enum ec_descr_type_code {
+	/* Segment descriptors : 0x00 to 0xBF */
+	BLK_TO_STRM_SEG_DESCR	= 0x00,
+	STRM_TO_BLK_SEG_DESCR	= 0x01,
+	BLK_TO_BLK_SEG_DESCR	= 0x02,
+	STRM_TO_STRM_SEG_DESCR	= 0x03,
+
+	/* Target descriptors : 0xEO to 0xFE */
+	IDENT_DESCR_TGT_DESCR	= 0xE4,
+	IPV4_TGT_DESCR		= 0xE5,
+	IPV6_TGT_DESCR		= 0xEA,
+	IP_COPY_SVC_TGT_DESCR	= 0xEB
+};
+
+enum lu_id_type {
+	LU_ID_TYPE_LUN		= 0x00,
+	LU_ID_TYPE_PROXY_TOKEN 	= 0x01,
+	LU_ID_TYPE_RSVD		= 0x02,
+	LU_ID_TYPE_RSVD1	= 0x03
+};
+
+EXTERN struct scsi_task *scsi_cdb_extended_copy(int immed);
+
+/*
+ * RECEIVE COPY RESULTS
+ */
+enum scsi_copy_results_sa {
+        SCSI_COPY_RESULTS_COPY_STATUS 		= 0,
+        SCSI_COPY_RESULTS_RECEIVE_DATA  	= 1,
+        SCSI_COPY_RESULTS_OP_PARAMS   		= 3,
+        SCSI_COPY_RESULTS_FAILED_SEGMENT	= 4,
+};
+
+EXTERN struct scsi_task *scsi_cdb_receive_copy_results(enum scsi_copy_results_sa sa, int list_id, int xferlen);
+
+struct scsi_copy_results_copy_status {
+	uint32_t available_data;
+	uint8_t copy_manager_status;
+	uint8_t hdd;
+	uint16_t segments_processed;
+	uint8_t transfer_count_units;
+	uint32_t transfer_count;
+};
+
+struct scsi_copy_results_op_params {
+	uint32_t available_data;
+	uint16_t max_target_desc_count;
+	uint16_t max_segment_desc_count;
+	uint32_t max_desc_list_length;
+	uint32_t max_segment_length;
+	uint32_t max_inline_data_length;
+	uint32_t held_data_limit;
+	uint32_t max_stream_device_transfer_size;
+	uint16_t total_concurrent_copies;
+	uint8_t max_concurrent_copies;
+	uint8_t data_segment_granularity;
+	uint8_t inline_data_granularity;
+	uint8_t held_data_granularity;
+	uint8_t impl_desc_list_length;
+	uint8_t imp_desc_type_codes[0];
+};
 void *scsi_malloc(struct scsi_task *task, size_t size);
 
 uint64_t scsi_get_uint64(const unsigned char *c);

@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -29,34 +30,24 @@
 void
 test_writesame16_simple(void)
 {
-	int i, ret;
-	unsigned char *buf = alloca(block_size);
-	
-	CHECK_FOR_DATALOSS;
-	CHECK_FOR_SBC;
+        int i;
+        
+        CHECK_FOR_DATALOSS;
+        CHECK_FOR_SBC;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test WRITESAME16 of 1-256 blocks at the start of the LUN");
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test WRITESAME16 of 1-256 blocks at the start of the LUN");
 
-	memset(buf, 0, block_size);
-	for (i = 1; i <= 256; i++) {
-		ret = writesame16(sd, 0,
-				  block_size, i, 0, 0, 0, 0, buf,
-				  EXPECT_STATUS_GOOD);
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] WRITESAME16 is not implemented.");
-			CU_PASS("[SKIPPED] Target does not support WRITESAME16. Skipping test");
-			return;
-		}
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        memset(scratch, 0, block_size);
+        for (i = 1; i <= 256; i++) {
+                WRITESAME16(sd, 0, block_size, i, 0, 0, 0, 0, scratch,
+                            EXPECT_STATUS_GOOD);
+        }
 
-	logging(LOG_VERBOSE, "Test WRITESAME16 of 1-256 blocks at the end of the LUN");
-	for (i = 1; i <= 256; i++) {
-		ret = writesame16(sd, num_blocks - i,
-				  block_size, i, 0, 0, 0, 0, buf,
-				  EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
-
+        logging(LOG_VERBOSE, "Test WRITESAME16 of 1-256 blocks at the end of the LUN");
+        for (i = 1; i <= 256; i++) {
+                WRITESAME16(sd, num_blocks - i,
+                            block_size, i, 0, 0, 0, 0, scratch,
+                            EXPECT_STATUS_GOOD);
+        }
 }

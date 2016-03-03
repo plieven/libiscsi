@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -26,44 +27,27 @@
 void
 test_writeverify12_0blocks(void)
 {
-	int ret;
+        CHECK_FOR_DATALOSS;
 
-	CHECK_FOR_DATALOSS;
+        if (num_blocks >= 0x80000000) {
+                CU_PASS("LUN is too big for read-beyond-eol tests with WRITEVERIFY12. Skipping test.\n");
+                return;
+        }
 
-	if (num_blocks >= 0x80000000) {
-		CU_PASS("LUN is too big for read-beyond-eol tests with WRITEVERIFY12. Skipping test.\n");
-		return;
-	}
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks at LBA==0");
+        WRITEVERIFY12(sd, 0, 0, block_size, 0, 0, 0, 0, NULL,
+                      EXPECT_STATUS_GOOD);
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks at LBA==0");
-	ret = writeverify12(sd, 0, 0, block_size,
-			    0, 0, 0, 0, NULL,
-			    EXPECT_STATUS_GOOD);
-	if (ret == -2) {
-		logging(LOG_NORMAL, "[SKIPPED] WRITEVERIFY12 is not implemented.");
-		CU_PASS("WRITEVERIFY12 is not implemented.");
-		return;
-	}	
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks one block past end-of-LUN");
+        WRITEVERIFY12(sd, num_blocks + 1, 0, block_size, 0, 0, 0, 0, NULL,
+                      EXPECT_LBA_OOB);
 
-	logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks one block past end-of-LUN");
-	ret = writeverify12(sd, num_blocks + 1, 0,
-			    block_size, 0, 0, 0, 0, NULL,
-			    EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks at LBA==2^31");
+        WRITEVERIFY12(sd, 0x80000000, 0, block_size, 0, 0, 0, 0, NULL,
+                      EXPECT_LBA_OOB);
 
-
-	logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks at LBA==2^31");
-	ret = writeverify12(sd, 0x80000000, 0,
-			    block_size, 0, 0, 0, 0, NULL,
-			    EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
-
-
-	logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks at LBA==-1");
-	ret = writeverify12(sd, -1, 0, block_size,
-			    0, 0, 0, 0, NULL,
-			    EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test WRITEVERIFY12 0-blocks at LBA==-1");
+        WRITEVERIFY12(sd, -1, 0, block_size, 0, 0, 0, 0, NULL,
+                      EXPECT_LBA_OOB);
 }

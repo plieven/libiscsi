@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -26,44 +27,27 @@
 void
 test_write10_0blocks(void)
 {
-	int ret;
+        CHECK_FOR_DATALOSS;
 
-	CHECK_FOR_DATALOSS;
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test WRITE10 0-blocks at LBA==0");
+        WRITE10(sd, 0, 0, block_size, 0, 0, 0, 0, 0, NULL,
+                EXPECT_STATUS_GOOD);
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test WRITE10 0-blocks at LBA==0");
-	ret = write10(sd, 0, 0, block_size,
-		      0, 0, 0, 0, 0, NULL,
-		      EXPECT_STATUS_GOOD);
-	if (ret == -2) {
-		logging(LOG_NORMAL, "[SKIPPED] WRITE10 is not implemented.");
-		CU_PASS("WRITE10 is not implemented.");
-		return;
-	}	
-	CU_ASSERT_EQUAL(ret, 0);
+        if (num_blocks >= 0x80000000) {
+                CU_PASS("LUN is too big for read-beyond-eol tests with WRITE10. Skipping test.\n");
+                return;
+        }
 
-	if (num_blocks >= 0x80000000) {
-		CU_PASS("LUN is too big for read-beyond-eol tests with WRITE10. Skipping test.\n");
-		return;
-	}
+        logging(LOG_VERBOSE, "Test WRITE10 0-blocks one block past end-of-LUN");
+        WRITE10(sd, num_blocks + 1, 0, block_size, 0, 0, 0, 0, 0, NULL,
+                EXPECT_LBA_OOB);
 
-	logging(LOG_VERBOSE, "Test WRITE10 0-blocks one block past end-of-LUN");
-	ret = write10(sd, num_blocks + 1, 0,
-		      block_size, 0, 0, 0, 0, 0, NULL,
-		      EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test WRITE10 0-blocks at LBA==2^31");
+        WRITE10(sd, 0x80000000, 0, block_size, 0, 0, 0, 0, 0, NULL,
+                EXPECT_LBA_OOB);
 
-
-	logging(LOG_VERBOSE, "Test WRITE10 0-blocks at LBA==2^31");
-	ret = write10(sd, 0x80000000, 0,
-		      block_size, 0, 0, 0, 0, 0, NULL,
-		      EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
-
-
-	logging(LOG_VERBOSE, "Test WRITE10 0-blocks at LBA==-1");
-	ret = write10(sd, -1, 0, block_size,
-		      0, 0, 0, 0, 0, NULL,
-		      EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test WRITE10 0-blocks at LBA==-1");
+        WRITE10(sd, -1, 0, block_size, 0, 0, 0, 0, 0, NULL,
+                EXPECT_LBA_OOB);
 }

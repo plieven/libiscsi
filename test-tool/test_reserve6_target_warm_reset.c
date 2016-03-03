@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -23,63 +24,50 @@
 #include "scsi-lowlevel.h"
 #include "iscsi-support.h"
 #include "iscsi-test-cu.h"
-
+#include "iscsi-multipath.h"
 
 void
 test_reserve6_target_warm_reset(void)
 {
-	int ret;
-	struct scsi_device sd2;
+        int ret;
+        struct scsi_device *sd2;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test that RESERVE6 is released on target warm reset");
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test that RESERVE6 is released on target warm reset");
 
-	if (sd->iscsi_ctx == NULL) {
-		const char *err = "[SKIPPED] This RESERVE6 test is only "
-			"supported for iSCSI backends";
-		logging(LOG_NORMAL, "%s", err);
-		CU_PASS(err);
-		return;
-	}
+        if (sd->iscsi_ctx == NULL) {
+                const char *err = "[SKIPPED] This RESERVE6 test is only "
+                        "supported for iSCSI backends";
+                logging(LOG_NORMAL, "%s", err);
+                CU_PASS(err);
+                return;
+        }
 
-	logging(LOG_VERBOSE, "Take out a RESERVE6 from the first initiator");
-	ret = reserve6(sd);
-	if (ret == -2) {
-		logging(LOG_VERBOSE, "[SKIPPED] Target does not support RESERVE6. Skipping test");
-		CU_PASS("[SKIPPED] Target does not support RESERVE6. Skipping test");
-		return;
-	}
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Take out a RESERVE6 from the first initiator");
+        RESERVE6(sd);
 
+        logging(LOG_VERBOSE, "Send a Warm Reset to the target");
+        ret = iscsi_task_mgmt_target_warm_reset_sync(sd->iscsi_ctx);
+        if (ret != 0) {
+                logging(LOG_NORMAL, "Warm reset failed. %s", iscsi_get_error(sd->iscsi_ctx));
+        }
+        CU_ASSERT_EQUAL(ret, 0);
 
-	logging(LOG_VERBOSE, "Send a Warm Reset to the target");
-	ret = iscsi_task_mgmt_target_warm_reset_sync(sd->iscsi_ctx);
-	if (ret != 0) {
-		logging(LOG_NORMAL, "Warm reset failed. %s", iscsi_get_error(sd->iscsi_ctx));
-	}
-	CU_ASSERT_EQUAL(ret, 0);
-
-	logging(LOG_VERBOSE, "Sleep for three seconds incase the target is slow to reset");
-	sleep(3);
+        logging(LOG_VERBOSE, "Sleep for three seconds incase the target is slow to reset");
+        sleep(3);
 
 
-	logging(LOG_VERBOSE, "Create a second connection to the target");
-	memset(&sd2, 0, sizeof(sd2));
-	sd2.iscsi_ctx = iscsi_context_login(initiatorname2, sd->iscsi_url, &sd2.iscsi_lun);
-	if (sd2.iscsi_ctx == NULL) {
-		logging(LOG_VERBOSE, "Failed to login to target");
-		return;
-	}
+        logging(LOG_VERBOSE, "Create a second connection to the target");
+        ret = mpath_sd2_get_or_clone(sd, &sd2);
+        CU_ASSERT_EQUAL(ret, 0);
+        if (ret < 0)
+                return;
 
+        logging(LOG_VERBOSE, "RESERVE6 from the second initiator should work now");
+        RESERVE6(sd2);
 
-	logging(LOG_VERBOSE, "RESERVE6 from the second initiator should work now");
-	ret = reserve6(&sd2);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "RELEASE6 from the second initiator");
+        RELEASE6(sd2);
 
-	logging(LOG_VERBOSE, "RELEASE6 from the second initiator");
-	ret = release6(&sd2);
-	CU_ASSERT_EQUAL(ret, 0);
-
-	iscsi_logout_sync(sd2.iscsi_ctx);
-	iscsi_destroy_context(sd2.iscsi_ctx);
+        mpath_sd2_put(sd2);
 }

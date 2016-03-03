@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -26,42 +27,25 @@
 void
 test_read12_0blocks(void)
 {
-	int ret;
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test READ12 0-blocks at LBA==0");
+        READ12(sd, NULL, 0, 0, block_size, 0, 0, 0, 0, 0, NULL,
+               EXPECT_STATUS_GOOD);
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test READ12 0-blocks at LBA==0");
-	ret = read12(sd, NULL, 0, 0, block_size,
-		     0, 0, 0, 0, 0, NULL,
-		     EXPECT_STATUS_GOOD);
-	if (ret == -2) {
-		logging(LOG_NORMAL, "[SKIPPED] READ12 is not implemented.");
-		CU_PASS("READ12 is not implemented.");
-		return;
-	}	
-	CU_ASSERT_EQUAL(ret, 0);
+        if (num_blocks > 0x80000000) {
+                CU_PASS("[SKIPPED] LUN is too big");
+                return;
+        }
 
-	if (num_blocks > 0x80000000) {
-		CU_PASS("[SKIPPED] LUN is too big");
-		return;
-	}
+        logging(LOG_VERBOSE, "Test READ12 0-blocks one block past end-of-LUN");
+        READ12(sd, NULL, num_blocks + 1, 0, block_size, 0, 0, 0, 0, 0, NULL,
+               EXPECT_LBA_OOB);
 
-	logging(LOG_VERBOSE, "Test READ12 0-blocks one block past end-of-LUN");
-	ret = read12(sd, NULL, num_blocks + 1, 0,
-		     block_size, 0, 0, 0, 0, 0, NULL,
-		     EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test READ12 0-blocks at LBA==2^31");
+        READ12(sd, NULL, 0x80000000, 0, block_size, 0, 0, 0, 0, 0, NULL,
+               EXPECT_LBA_OOB);
 
-
-	logging(LOG_VERBOSE, "Test READ12 0-blocks at LBA==2^31");
-	ret = read12(sd, NULL, 0x80000000, 0, block_size,
-		     0, 0, 0, 0, 0, NULL,
-		     EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
-
-
-	logging(LOG_VERBOSE, "Test READ12 0-blocks at LBA==-1");
-	ret = read12(sd, NULL, -1, 0, block_size,
-		     0, 0, 0, 0, 0, NULL,
-		     EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test READ12 0-blocks at LBA==-1");
+        READ12(sd, NULL, -1, 0, block_size, 0, 0, 0, 0, 0, NULL,
+               EXPECT_LBA_OOB);
 }

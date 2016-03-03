@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -29,34 +30,25 @@
 void
 test_verify10_vrprotect(void)
 {
-	int i, ret;
-	unsigned char *buf = alloca(block_size);
+        int i;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test VERIFY10 with non-zero VRPROTECT");
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test VERIFY10 with non-zero VRPROTECT");
 
-	CHECK_FOR_SBC;
+        CHECK_FOR_SBC;
 
-	if (!inq->protect || (rc16 != NULL && !rc16->prot_en)) {
-		logging(LOG_VERBOSE, "Device does not support/use protection information. All commands should fail.");
-		for (i = 1; i < 8; i++) {
-			ret = read10(sd, NULL, 0, block_size,
-				     block_size, 0, 0, 0, 0, 0, buf,
-				     EXPECT_STATUS_GOOD);
-			CU_ASSERT_EQUAL(ret, 0);
-	
-			ret = verify10(sd, 0, block_size,
-				       block_size, i, 0, 1, buf,
-				       EXPECT_INVALID_FIELD_IN_CDB);
-			if (ret == -2) {
-				logging(LOG_NORMAL, "[SKIPPED] VERIFY10 is not implemented.");
-				CU_PASS("[SKIPPED] Target does not support VERIFY10. Skipping test");
-				return;
-			}
-			CU_ASSERT_EQUAL(ret, 0);
-		}
-		return;
-	}
+        if (!inq->protect || (rc16 != NULL && !rc16->prot_en)) {
+                logging(LOG_VERBOSE, "Device does not support/use protection information. All commands should fail.");
+                for (i = 1; i < 8; i++) {
+                        READ10(sd, NULL, 0, block_size,
+                               block_size, 0, 0, 0, 0, 0, scratch,
+                               EXPECT_STATUS_GOOD);
+                        VERIFY10(sd, 0, block_size,
+                                 block_size, i, 0, 1, scratch,
+                                 EXPECT_INVALID_FIELD_IN_CDB);
+                }
+                return;
+        }
 
-	logging(LOG_NORMAL, "No tests for devices that support protection information yet.");
+        logging(LOG_NORMAL, "No tests for devices that support protection information yet.");
 }

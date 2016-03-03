@@ -159,6 +159,7 @@ struct iscsi_context {
 	int scsi_timeout;
 	struct iscsi_context *old_iscsi;
 	int retry_cnt;
+	int no_ua_on_reconnect;
 };
 
 #define ISCSI_PDU_IMMEDIATE		       0x40
@@ -232,6 +233,8 @@ struct iscsi_pdu {
 #define ISCSI_PDU_DROP_ON_RECONNECT	0x00000004
 /* stop sending after this PDU has been sent */
 #define ISCSI_PDU_CORK_WHEN_SENT	0x00000008
+/* Fail the command with error on reconnect */
+#define ISCSI_PDU_ERROR_ON_RECONNECT	0x00000016
 
 	uint32_t flags;
 

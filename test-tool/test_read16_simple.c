@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -28,38 +29,29 @@
 void
 test_read16_simple(void)
 {
-	int i, ret;
+        int i;
 
-	CHECK_FOR_SBC;
+        CHECK_FOR_SBC;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test READ16 of 1-256 blocks at the start of the LUN");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-
-		ret = read16(sd, NULL, 0, i * block_size,
-			     block_size, 0, 0, 0, 0, 0, NULL,
-			     EXPECT_STATUS_GOOD);
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] READ16 is not implemented on this target and it does not claim SBC-3 support.");
-			CU_PASS("READ16 is not implemented and no SBC-3 support claimed.");
-			return;
-		}	
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test READ16 of 1-256 blocks at the start of the LUN");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                READ16(sd, NULL, 0, i * block_size,
+                       block_size, 0, 0, 0, 0, 0, NULL,
+                       EXPECT_STATUS_GOOD);
+        }
 
 
-	logging(LOG_VERBOSE, "Test READ16 of 1-256 blocks at the end of the LUN");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-
-		ret = read16(sd, NULL, num_blocks - i,
-			     i * block_size, block_size, 0, 0, 0, 0, 0, NULL,
-			     EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, "Test READ16 of 1-256 blocks at the end of the LUN");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                READ16(sd, NULL, num_blocks - i,
+                       i * block_size, block_size, 0, 0, 0, 0, 0, NULL,
+                       EXPECT_STATUS_GOOD);
+        }
 }

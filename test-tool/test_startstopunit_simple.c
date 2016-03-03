@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -28,69 +29,54 @@
 void
 test_startstopunit_simple(void)
 { 
-	int ret;
+        int ret;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test basic STARTSTOPUNIT");
-
-
-	logging(LOG_VERBOSE, "Test we can eject removable the media with IMMED==1");
-	if (inq->rmb) {
-		logging(LOG_VERBOSE, "Media is removable. STARTSTOPUNIT should work");
-	} else {
-		logging(LOG_VERBOSE, "Media is not removable. STARTSTOPUNIT should fail");
-	}
-
-	ret = startstopunit(sd,
-			    1, 0, 0, 0, 1, 0,
-			    EXPECT_STATUS_GOOD);
-	if (!inq->rmb) {
-		CU_ASSERT_NOT_EQUAL(ret, 0);
-		return;
-	}
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test basic STARTSTOPUNIT");
 
 
-	logging(LOG_VERBOSE, "Test TESTUNITREADY that medium is ejected.");
-	ret = testunitready(sd,
-			    EXPECT_NO_MEDIUM);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test we can eject removable the media with IMMED==1");
+        if (inq->rmb) {
+                logging(LOG_VERBOSE, "Media is removable. STARTSTOPUNIT should work");
+        } else {
+                logging(LOG_VERBOSE, "Media is not removable. STARTSTOPUNIT should fail");
+        }
+
+        ret = startstopunit(sd, 1, 0, 0, 0, 1, 0,
+                            EXPECT_STATUS_GOOD);
+        if (!inq->rmb) {
+                CU_ASSERT_NOT_EQUAL(ret, 0);
+                return;
+        }
+        CU_ASSERT_EQUAL(ret, 0);
 
 
-	logging(LOG_VERBOSE, "Test we can load the removable the media with IMMED==1");
-	ret = startstopunit(sd,
-			    1, 0, 0, 0, 1, 1,
-			    EXPECT_STATUS_GOOD);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test TESTUNITREADY that medium is ejected.");
+        TESTUNITREADY(sd,
+                      EXPECT_NO_MEDIUM);
 
-	logging(LOG_VERBOSE, "Verify we can read from the media.");
-	ret = testunitready(sd,
-			    EXPECT_SANITIZE);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test we can load the removable the media with IMMED==1");
+        STARTSTOPUNIT(sd, 1, 0, 0, 0, 1, 1,
+                      EXPECT_STATUS_GOOD);
 
+        logging(LOG_VERBOSE, "Verify we can read from the media.");
+        TESTUNITREADY(sd,
+                      EXPECT_SANITIZE);
 
+        logging(LOG_VERBOSE, "Test we can eject removable the media with IMMED==1");
+        STARTSTOPUNIT(sd, 0, 0, 0, 0, 1, 0,
+                      EXPECT_STATUS_GOOD);
 
-	logging(LOG_VERBOSE, "Test we can eject removable the media with IMMED==1");
-	ret = startstopunit(sd,
-			    0, 0, 0, 0, 1, 0,
-			    EXPECT_STATUS_GOOD);
-	CU_ASSERT_EQUAL(ret, 0);
-
-
-	logging(LOG_VERBOSE, "Test TESTUNITREADY that medium is ejected.");
-	ret = testunitready(sd,
-			    EXPECT_NO_MEDIUM);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test TESTUNITREADY that medium is ejected.");
+        TESTUNITREADY(sd,
+                      EXPECT_NO_MEDIUM);
 
 
-	logging(LOG_VERBOSE, "Test we can load the removable the media with IMMED==1");
-	ret = startstopunit(sd,
-			    0, 0, 0, 0, 1, 1,
-			    EXPECT_STATUS_GOOD);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test we can load the removable the media with IMMED==1");
+        STARTSTOPUNIT(sd, 0, 0, 0, 0, 1, 1,
+                      EXPECT_STATUS_GOOD);
 
-	logging(LOG_VERBOSE, "Verify we can access the media again.");
-	ret = testunitready(sd,
-			    EXPECT_SANITIZE);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Verify we can access the media again.");
+        TESTUNITREADY(sd,
+                      EXPECT_SANITIZE);
 }

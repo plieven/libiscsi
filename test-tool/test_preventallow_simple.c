@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 by Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -27,19 +28,15 @@
 void
 test_preventallow_simple(void)
 {
-	int ret;
+        CHECK_FOR_SBC;
+        CHECK_FOR_REMOVABLE;
 
-	CHECK_FOR_SBC;
-	CHECK_FOR_REMOVABLE;
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test PREVENTALLOW basics");
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test PREVENTALLOW basics");
+        logging(LOG_VERBOSE, "Test we can set PREVENT flag");
+        PREVENTALLOW(sd, 1);
 
-	logging(LOG_VERBOSE, "Test we can set PREVENT flag");
-	ret = preventallow(sd, 1);
-	CU_ASSERT_EQUAL(ret, 0);
-
-	logging(LOG_VERBOSE, "Test we can clear PREVENT flag");
-	ret = preventallow(sd, 0);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test we can clear PREVENT flag");
+        PREVENTALLOW(sd, 0);
 }

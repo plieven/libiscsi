@@ -98,6 +98,7 @@ iscsi_set_isid_en
 iscsi_set_isid_oui
 iscsi_set_isid_random
 iscsi_set_isid_reserved
+iscsi_set_no_ua_on_reconnect
 iscsi_set_session_type
 iscsi_set_target_username_pwd
 iscsi_set_targetname
@@ -143,6 +144,8 @@ iscsi_write12_sync
 iscsi_write12_task
 iscsi_write16_sync
 iscsi_write16_task
+iscsi_writeatomic16_sync
+iscsi_writeatomic16_task
 iscsi_orwrite_sync
 iscsi_orwrite_task
 iscsi_compareandwrite_sync
@@ -159,6 +162,7 @@ iscsi_writesame16_sync
 iscsi_writesame16_task
 scsi_association_to_str
 scsi_cdb_compareandwrite
+scsi_cdb_extended_copy
 scsi_cdb_inquiry
 scsi_cdb_get_lba_status
 scsi_cdb_modeselect6
@@ -177,6 +181,7 @@ scsi_cdb_read6
 scsi_cdb_readcapacity10
 scsi_cdb_readcapacity16
 scsi_cdb_readtoc
+scsi_cdb_receive_copy_results
 scsi_cdb_reserve6
 scsi_cdb_release6
 scsi_cdb_report_supported_opcodes
@@ -193,6 +198,7 @@ scsi_cdb_verify16
 scsi_cdb_write10
 scsi_cdb_write12
 scsi_cdb_write16
+scsi_cdb_writeatomic16
 scsi_cdb_orwrite
 scsi_cdb_writeverify10
 scsi_cdb_writeverify12

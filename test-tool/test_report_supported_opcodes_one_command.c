@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 by Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -28,146 +29,113 @@
 void
 test_report_supported_opcodes_one_command(void)
 {
-	int i, ret;
-	struct scsi_task *rso_task;
-	struct scsi_task *one_task;
-	struct scsi_report_supported_op_codes *rsoc;
-	struct scsi_report_supported_op_codes_one_command *rsoc_one;
+        int i;
+        struct scsi_task *rso_task;
+        struct scsi_task *one_task;
+        struct scsi_report_supported_op_codes *rsoc;
+        struct scsi_report_supported_op_codes_one_command *rsoc_one;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test READ_SUPPORTED_OPCODES reading one-command");
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test READ_SUPPORTED_OPCODES reading one-command");
 
+        logging(LOG_VERBOSE, "Fetch list of all supported opcodes");
+        REPORT_SUPPORTED_OPCODES(sd, &rso_task,
+                                 0, SCSI_REPORT_SUPPORTING_OPS_ALL,
+                                 0, 0, 65535,
+                                 EXPECT_STATUS_GOOD);
+        
+        logging(LOG_VERBOSE, "Unmarshall the DATA-IN buffer");
+        rsoc = scsi_datain_unmarshall(rso_task);
+        CU_ASSERT_PTR_NOT_NULL_FATAL(rsoc);
 
-	logging(LOG_VERBOSE, "Fetch list of all supported opcodes");
-	ret = report_supported_opcodes(sd, &rso_task,
-				       0, SCSI_REPORT_SUPPORTING_OPS_ALL,
-				       0, 0, 65535,
-				       EXPECT_STATUS_GOOD);
-	if (ret == -2) {
-		logging(LOG_NORMAL, "[SKIPPED] READ_SUPPORTED_OPCODES is not "
-			"implemented.");
-		CU_PASS("READ_SUPPORTED_OPCODES is not implemented.");
-		scsi_free_scsi_task(rso_task);
-		return;
-	}
-	CU_ASSERT_EQUAL(ret, 0);
-	if (ret != 0) {
-		scsi_free_scsi_task(rso_task);
-		return;
-	}
-	
-	logging(LOG_VERBOSE, "Unmarshall the DATA-IN buffer");
-	rsoc = scsi_datain_unmarshall(rso_task);
-	CU_ASSERT_NOT_EQUAL(rsoc, NULL);
+        logging(LOG_VERBOSE, "Verify read one-command works for all supported "
+                "opcodes");
+        for (i = 0; i < rsoc->num_descriptors; i++) {
+                logging(LOG_VERBOSE, "Check opcode:0x%02x ServiceAction:0x%02x",
+                        rsoc->descriptors[i].opcode,
+                        rsoc->descriptors[i].sa);
+                if (rsoc->descriptors[i].servactv) {
+                        logging(LOG_VERBOSE, "This opcode has service actions. "
+                                "Reporting Options 001b should fail");
+                        REPORT_SUPPORTED_OPCODES(sd, NULL, 0,
+                                                 SCSI_REPORT_SUPPORTING_OPCODE,
+                                                 rsoc->descriptors[i].opcode,
+                                                 rsoc->descriptors[i].sa,
+                                                 65535,
+                                                 EXPECT_INVALID_FIELD_IN_CDB);
+                } else {
+                        logging(LOG_VERBOSE, "This opcode does not have "
+                                "service actions. Reporting Options 001b "
+                                "should work");
+                        REPORT_SUPPORTED_OPCODES(sd, NULL, 0,
+                                                 SCSI_REPORT_SUPPORTING_OPCODE,
+                                                 rsoc->descriptors[i].opcode,
+                                                 rsoc->descriptors[i].sa,
+                                                 65535,
+                                                 EXPECT_STATUS_GOOD);
+                }
 
-
-	logging(LOG_VERBOSE, "Verify read one-command works for all supported "
-		"opcodes");
-	for (i = 0; i < rsoc->num_descriptors; i++) {
-		logging(LOG_VERBOSE, "Check opcode:0x%02x ServiceAction:0x%02x",
-			rsoc->descriptors[i].opcode,
-			rsoc->descriptors[i].sa);
-		if (rsoc->descriptors[i].servactv) {
-			logging(LOG_VERBOSE, "This opcode has service actions. "
-				"Reporting Options 001b should fail");
-			ret = report_supported_opcodes(sd, NULL,
-				0, SCSI_REPORT_SUPPORTING_OPCODE,
-				rsoc->descriptors[i].opcode,
-				rsoc->descriptors[i].sa,
-				65535,
-				EXPECT_INVALID_FIELD_IN_CDB);
-		} else {
-			logging(LOG_VERBOSE, "This opcode does not have "
-				"service actions. Reporting Options 001b "
-				"should work");
-			ret = report_supported_opcodes(
-				sd, NULL,
-				0, SCSI_REPORT_SUPPORTING_OPCODE,
-				rsoc->descriptors[i].opcode,
-				rsoc->descriptors[i].sa,
-				65535,
-				EXPECT_STATUS_GOOD);
-		}
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] SCSI_REPORT_SUPPORTING_OPCODE is not "
-			"implemented.");
-			CU_PASS("SCSI_REPORT_SUPPORTING_OPCODE is not implemented.");
-		} else {
-			CU_ASSERT_EQUAL(ret, 0);
-		}
-
-		if (rsoc->descriptors[i].servactv) {
-			logging(LOG_VERBOSE, "This opcode has service actions. "
-				"Reporting Options 002b should work");
-			ret = report_supported_opcodes(
-				sd, NULL,
-				0, SCSI_REPORT_SUPPORTING_SERVICEACTION,
-				rsoc->descriptors[i].opcode,
-				rsoc->descriptors[i].sa,
-				65535,
-				EXPECT_STATUS_GOOD);
-		} else {
-			logging(LOG_VERBOSE, "This opcode does not have "
-				"service actions. Reporting Options 002b "
-				"should fail");
-			ret = report_supported_opcodes(
-				sd, NULL,
-				0, SCSI_REPORT_SUPPORTING_SERVICEACTION,
-				rsoc->descriptors[i].opcode,
-				rsoc->descriptors[i].sa,
-				65535,
-				EXPECT_INVALID_FIELD_IN_CDB);
-		}
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] SCSI_REPORT_SUPPORTING_SERVICEACTION is not "
-			"implemented.");
-			CU_PASS("SCSI_REPORT_SUPPORTING_SERVICEACTION is not implemented.");
-		} else {
-			CU_ASSERT_EQUAL(ret, 0);
-		}
-	}
+                if (rsoc->descriptors[i].servactv) {
+                        logging(LOG_VERBOSE, "This opcode has service actions. "
+                                "Reporting Options 002b should work");
+                        REPORT_SUPPORTED_OPCODES(sd, NULL, 0,
+                                                 SCSI_REPORT_SUPPORTING_SERVICEACTION,
+                                                 rsoc->descriptors[i].opcode,
+                                                 rsoc->descriptors[i].sa,
+                                                 65535,
+                                                 EXPECT_STATUS_GOOD);
+                } else {
+                        logging(LOG_VERBOSE, "This opcode does not have "
+                                "service actions. Reporting Options 002b "
+                                "should fail");
+                        REPORT_SUPPORTED_OPCODES(sd, NULL, 0,
+                                                 SCSI_REPORT_SUPPORTING_SERVICEACTION,
+                                                 rsoc->descriptors[i].opcode,
+                                                 rsoc->descriptors[i].sa,
+                                                 65535,
+                                                 EXPECT_INVALID_FIELD_IN_CDB);
+                }
+        }
 
 
-	logging(LOG_VERBOSE, "Verify read one-command CDB looks sane");
-	for (i = 0; i < rsoc->num_descriptors; i++) {
-		logging(LOG_VERBOSE, "Check CDB for opcode:0x%02x "
-			"ServiceAction:0x%02x",
-			rsoc->descriptors[i].opcode,
-			rsoc->descriptors[i].sa);
-		ret = report_supported_opcodes(
-			sd, &one_task, 0,
-			rsoc->descriptors[i].servactv ?
-				SCSI_REPORT_SUPPORTING_SERVICEACTION :
-				SCSI_REPORT_SUPPORTING_OPCODE,
-			rsoc->descriptors[i].opcode,
-			rsoc->descriptors[i].sa,
-			65535,
-			EXPECT_STATUS_GOOD);
+        logging(LOG_VERBOSE, "Verify read one-command CDB looks sane");
+        for (i = 0; i < rsoc->num_descriptors; i++) {
+                logging(LOG_VERBOSE, "Check CDB for opcode:0x%02x "
+                        "ServiceAction:0x%02x",
+                        rsoc->descriptors[i].opcode,
+                        rsoc->descriptors[i].sa);
+                REPORT_SUPPORTED_OPCODES(sd, &one_task, 0,
+                                         rsoc->descriptors[i].servactv ?
+                                         SCSI_REPORT_SUPPORTING_SERVICEACTION :
+                                         SCSI_REPORT_SUPPORTING_OPCODE,
+                                         rsoc->descriptors[i].opcode,
+                                         rsoc->descriptors[i].sa,
+                                         65535,
+                                         EXPECT_STATUS_GOOD);
 
-		logging(LOG_VERBOSE, "Unmarshall the DATA-IN buffer");
-		rsoc_one = scsi_datain_unmarshall(one_task);
-		CU_ASSERT_NOT_EQUAL(rsoc_one, NULL);
+                logging(LOG_VERBOSE, "Unmarshall the DATA-IN buffer");
+                rsoc_one = scsi_datain_unmarshall(one_task);
+                CU_ASSERT_PTR_NOT_NULL_FATAL(rsoc_one);
 
-		logging(LOG_VERBOSE, "Verify CDB length is not 0");
-		CU_ASSERT_NOT_EQUAL(rsoc_one->cdb_length, 0);
-		if (rsoc_one->cdb_length == 0) {
-			logging(LOG_NORMAL, "[FAILED] CDB length is 0");
-		}
-		
-		logging(LOG_VERBOSE, "Verify CDB[0] Usage Data == <opcode>");
-		CU_ASSERT_EQUAL(rsoc_one->cdb_usage_data[0],
-				rsoc->descriptors[i].opcode);
-		if (rsoc_one->cdb_usage_data[0] != rsoc->descriptors[i].opcode) {
-			logging(LOG_NORMAL, "[FAILED] CDB[0] Usage Data was "
-				"0x%02x, expected 0x%02x for opcode 0x%02x",
-				rsoc_one->cdb_usage_data[0],
-				rsoc->descriptors[i].opcode,
-				rsoc->descriptors[i].opcode);
-		}
+                logging(LOG_VERBOSE, "Verify CDB length is not 0");
+                CU_ASSERT_NOT_EQUAL(rsoc_one->cdb_length, 0);
+                if (rsoc_one->cdb_length == 0) {
+                        logging(LOG_NORMAL, "[FAILED] CDB length is 0");
+                }
+                
+                logging(LOG_VERBOSE, "Verify CDB[0] Usage Data == <opcode>");
+                CU_ASSERT_EQUAL(rsoc_one->cdb_usage_data[0],
+                                rsoc->descriptors[i].opcode);
+                if (rsoc_one->cdb_usage_data[0] != rsoc->descriptors[i].opcode) {
+                        logging(LOG_NORMAL, "[FAILED] CDB[0] Usage Data was "
+                                "0x%02x, expected 0x%02x for opcode 0x%02x",
+                                rsoc_one->cdb_usage_data[0],
+                                rsoc->descriptors[i].opcode,
+                                rsoc->descriptors[i].opcode);
+                }
 
-		scsi_free_scsi_task(one_task);
-	}
+                scsi_free_scsi_task(one_task);
+        }
 
-
-	scsi_free_scsi_task(rso_task);
+        scsi_free_scsi_task(rso_task);
 }

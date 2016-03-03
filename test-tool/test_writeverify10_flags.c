@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -29,24 +30,14 @@
 void
 test_writeverify10_flags(void)
 { 
-	int ret;
-	unsigned char *buf = alloca(block_size);
+        CHECK_FOR_DATALOSS;
 
-	CHECK_FOR_DATALOSS;
-
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test WRITEVERIFY10 flags");
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test WRITEVERIFY10 flags");
 
 
-	logging(LOG_VERBOSE, "Test WRITEVERIFY10 with BYTCHK==1");
-	memset(buf, 0xa6, block_size);
-	ret = writeverify10(sd, 0,
-			    block_size, block_size, 0, 0, 1, 0, buf,
-			    EXPECT_STATUS_GOOD);
-	if (ret == -2) {
-		logging(LOG_NORMAL, "[SKIPPED] WRITEVERIFY10 is not implemented.");
-		CU_PASS("WRITEVERIFY10 is not implemented.");
-		return;
-	}	
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test WRITEVERIFY10 with BYTCHK==1");
+        memset(scratch, 0xa6, block_size);
+        WRITEVERIFY10(sd, 0, block_size, block_size, 0, 0, 1, 0, scratch,
+                      EXPECT_STATUS_GOOD);
 }

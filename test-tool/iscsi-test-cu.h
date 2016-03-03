@@ -17,8 +17,8 @@
    along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef	_ISCSI_TEST_CU_H_
-#define	_ISCSI_TEST_CU_H_
+#ifndef        _ISCSI_TEST_CU_H_
+#define        _ISCSI_TEST_CU_H_
 
 #include <time.h>
 #include <sys/types.h>
@@ -51,6 +51,13 @@ void test_teardown(void);
 void test_compareandwrite_simple(void);
 void test_compareandwrite_dpofua(void);
 void test_compareandwrite_miscompare(void);
+
+void test_extendedcopy_simple(void);
+void test_extendedcopy_param(void);
+void test_extendedcopy_descr_limits(void);
+void test_extendedcopy_descr_type(void);
+void test_extendedcopy_validate_tgt_descr(void);
+void test_extendedcopy_validate_seg_descr(void);
 
 void test_get_lba_status_simple(void);
 void test_get_lba_status_beyond_eol(void);
@@ -107,6 +114,7 @@ void test_preventallow_2_itnexuses(void);
 
 void test_prin_read_keys_simple(void);
 void test_prin_serviceaction_range(void);
+void test_prin_report_caps_simple(void);
 
 void test_prout_register_simple(void);
 void test_prout_reserve_simple(void);
@@ -122,6 +130,8 @@ void test_prout_reserve_ownership_earo(void);
 void test_prout_reserve_ownership_wero(void);
 void test_prout_reserve_ownership_eaar(void);
 void test_prout_reserve_ownership_wear(void);
+void test_prout_clear_simple(void);
+void test_prout_preempt_rm_reg(void);
 
 void test_read6_simple(void);
 void test_read6_beyond_eol(void);
@@ -155,8 +165,12 @@ void test_readcapacity10_simple(void);
 void test_readcapacity16_alloclen(void);
 void test_readcapacity16_protection(void);
 void test_readcapacity16_simple(void);
+void test_readcapacity16_support(void);
 
 void test_readonly_sbc(void);
+
+void test_receive_copy_results_copy_status(void);
+void test_receive_copy_results_op_params(void);
 
 void test_report_supported_opcodes_one_command(void);
 void test_report_supported_opcodes_rctd(void);
@@ -241,6 +255,13 @@ void test_write16_wrprotect(void);
 void test_write16_dpofua(void);
 void test_write16_residuals(void);
 
+void test_writeatomic16_simple(void);
+void test_writeatomic16_beyond_eol(void);
+void test_writeatomic16_0blocks(void);
+void test_writeatomic16_wrprotect(void);
+void test_writeatomic16_dpofua(void);
+void test_writeatomic16_vpd(void);
+
 void test_writesame10_simple(void);
 void test_writesame10_beyond_eol(void);
 void test_writesame10_0blocks(void);
@@ -283,4 +304,8 @@ void test_writeverify16_flags(void);
 void test_writeverify16_dpo(void);
 void test_writeverify16_residuals(void);
 
-#endif	/* _ISCSI_TEST_CU_H_ */
+void test_multipathio_simple(void);
+void test_multipathio_reset(void);
+void test_multipathio_compareandwrite(void);
+
+#endif        /* _ISCSI_TEST_CU_H_ */

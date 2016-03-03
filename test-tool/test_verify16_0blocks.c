@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -26,37 +27,18 @@
 void
 test_verify16_0blocks(void)
 {
-	int ret;
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test VERIFY16 0-blocks at LBA==0");
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test VERIFY16 0-blocks at LBA==0");
-	ret = verify16(sd, 0, 0, block_size,
-		       0, 0, 1, NULL,
-		       EXPECT_STATUS_GOOD);
-	if (ret == -2) {
-		logging(LOG_NORMAL, "[SKIPPED] VERIFY16 is not implemented.");
-		CU_PASS("[SKIPPED] Target does not support VERIFY16. Skipping test");
-		return;
-	}
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test VERIFY16 0-blocks one block past end-of-LUN");
+        VERIFY16(sd, num_blocks + 1, 0, block_size, 0, 0, 1, NULL,
+                 EXPECT_LBA_OOB);
 
-	logging(LOG_VERBOSE, "Test VERIFY16 0-blocks one block past end-of-LUN");
-	ret = verify16(sd, num_blocks + 1, 0,
-		       block_size, 0, 0, 1, NULL,
-		       EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test VERIFY16 0-blocks at LBA==2^63");
+        VERIFY16(sd, 0x8000000000000000ULL, 0, block_size, 0, 0, 1, NULL,
+                 EXPECT_LBA_OOB);
 
-
-	logging(LOG_VERBOSE, "Test VERIFY16 0-blocks at LBA==2^63");
-	ret = verify16(sd, 0x8000000000000000ULL, 0,
-		       block_size, 0, 0, 1, NULL,
-		       EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
-
-
-	logging(LOG_VERBOSE, "Test VERIFY16 0-blocks at LBA==-1");
-	ret = verify16(sd, -1, 0, block_size,
-		       0, 0, 1, NULL,
-		       EXPECT_LBA_OOB);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test VERIFY16 0-blocks at LBA==-1");
+        VERIFY16(sd, -1, 0, block_size, 0, 0, 1, NULL,
+                 EXPECT_LBA_OOB);
 }

@@ -34,7 +34,7 @@ struct iscsi_context;
 struct sockaddr;
 
 /* API VERSION */
-#define LIBISCSI_API_VERSION (20150510)
+#define LIBISCSI_API_VERSION (20150621)
 
 /* FEATURES */
 #define LIBISCSI_FEATURE_IOVECTOR (1)
@@ -180,7 +180,7 @@ iscsi_set_initial_r2t(struct iscsi_context *iscsi, enum iscsi_initial_r2t initia
  * "iqn.ronnie.test%3A1234" will be translated to "iqn.ronnie.test:1234"
  *
  * Function will return a pointer to an iscsi url structure if successful,
- * or it will return NULL and set iscsi_get_error() accrodingly if there was a problem
+ * or it will return NULL and set iscsi_get_error() accordingly if there was a problem
  * with the URL.
  *
  * CHAP username/password can also be provided via environment variables
@@ -201,7 +201,7 @@ EXTERN void iscsi_destroy_url(struct iscsi_url *iscsi_url);
  * lun is not yet known.
  *
  * Function will return a pointer to an iscsi url structure if successful,
- * or it will return NULL and set iscsi_get_error() accrodingly if there was a problem
+ * or it will return NULL and set iscsi_get_error() accordingly if there was a problem
  * with the URL.
  *
  * CHAP username/password can also be provided via environment variables
@@ -223,15 +223,15 @@ EXTERN const char *iscsi_get_error(struct iscsi_context *iscsi);
  * Initiator_name is the iqn name we want to identify to the target as.
  *
  * Returns:
- *  0: success
- * <0: error
+ *  non-NULL: success
+ *  NULL: error
  */
 EXTERN struct iscsi_context *iscsi_create_context(const char *initiator_name);
 
 /*
  * Destroy an existing ISCSI context and tear down any existing connection.
  * Callbacks for any command in flight will be invoked with
- * ISCSI_STATUS_CANCELLED.
+ * SCSI_STATUS_CANCELLED.
  *
  * Returns:
  *  0: success
@@ -369,13 +369,13 @@ typedef void (*iscsi_command_cb)(struct iscsi_context *iscsi, int status,
  *
  * Callback parameters :
  * status can be either of :
- *    ISCSI_STATUS_GOOD     : Connection was successful. Command_data is NULL.
- *                            In this case the callback will be invoked a
- *                            second time once the connection is torn down.
+ *    SCSI_STATUS_GOOD     : Connection was successful. Command_data is NULL.
+ *                           In this case the callback will be invoked a
+ *                           second time once the connection is torn down.
  *
- *    ISCSI_STATUS_ERROR    : Either failed to establish the connection, or
- *                            an already established connection has failed
- *                            with an error.
+ *    SCSI_STATUS_ERROR    : Either failed to establish the connection, or
+ *                           an already established connection has failed
+ *                           with an error.
  *
  * The callback will NOT be invoked if the session is explicitely torn down
  * through a call to iscsi_disconnect() or iscsi_destroy_context().
@@ -408,13 +408,13 @@ EXTERN int iscsi_connect_sync(struct iscsi_context *iscsi, const char *portal);
  *
  * Callback parameters :
  * status can be either of :
- *    ISCSI_STATUS_GOOD     : Connection was successful. Command_data is NULL.
- *                            In this case the callback will be invoked a
- *                            second time once the connection is torn down.
+ *    SCSI_STATUS_GOOD     : Connection was successful. Command_data is NULL.
+ *                           In this case the callback will be invoked a
+ *                           second time once the connection is torn down.
  *
- *    ISCSI_STATUS_ERROR    : Either failed to establish the connection, or
- *                            an already established connection has failed
- *                            with an error.
+ *    SCSI_STATUS_ERROR    : Either failed to establish the connection, or
+ *                           an already established connection has failed
+ *                           with an error.
  *
  * The callback will NOT be invoked if the session is explicitely torn down
  * through a call to iscsi_disconnect() or iscsi_destroy_context().
@@ -476,10 +476,10 @@ EXTERN int iscsi_reconnect_sync(struct iscsi_context *iscsi);
  *
  * Callback parameters :
  * status can be either of :
- *    ISCSI_STATUS_GOOD     : login was successful. Command_data is always
- *                            NULL.
- *    ISCSI_STATUS_CANCELLED: login was aborted. Command_data is NULL.
- *    ISCSI_STATUS_ERROR    : login failed. Command_data is NULL.
+ *    SCSI_STATUS_GOOD     : login was successful. Command_data is always
+ *                           NULL.
+ *    SCSI_STATUS_CANCELLED: login was aborted. Command_data is NULL.
+ *    SCSI_STATUS_ERROR    : login failed. Command_data is NULL.
  */
 EXTERN int iscsi_login_async(struct iscsi_context *iscsi, iscsi_command_cb cb,
 		      void *private_data);
@@ -504,9 +504,9 @@ EXTERN int iscsi_login_sync(struct iscsi_context *iscsi);
  *
  * Callback parameters :
  * status can be either of :
- *    ISCSI_STATUS_GOOD     : logout was successful. Command_data is always
- *                            NULL.
- *    ISCSI_STATUS_CANCELLED: logout was aborted. Command_data is NULL.
+ *    SCSI_STATUS_GOOD     : logout was successful. Command_data is always
+ *                           NULL.
+ *    SCSI_STATUS_CANCELLED: logout was aborted. Command_data is NULL.
  */
 EXTERN int iscsi_logout_async(struct iscsi_context *iscsi, iscsi_command_cb cb,
 		       void *private_data);
@@ -528,18 +528,18 @@ EXTERN int iscsi_logout_sync(struct iscsi_context *iscsi);
  *
  * Returns:
  *  0 if the call was initiated and a discovery  will be attempted. Result
- *    of the logout will be reported through the callback function.
+ *    will be reported through the callback function.
  * <0 if there was an error. The callback function will not be invoked.
  *
  * Callback parameters :
  * status can be either of :
- *    ISCSI_STATUS_GOOD     : Discovery was successful. Command_data is a
- *                            pointer to a iscsi_discovery_address list of
- *                            structures.
- *                            This list of structures is only valid for the
- *                            duration of the callback and all data will be
- *                            freed once the callback returns.
- *    ISCSI_STATUS_CANCELLED: Discovery was aborted. Command_data is NULL.
+ *    SCSI_STATUS_GOOD     : Discovery was successful. Command_data is a
+ *                           pointer to a iscsi_discovery_address list of
+ *                           structures.
+ *                           This list of structures is only valid for the
+ *                           duration of the callback and all data will be
+ *                           freed once the callback returns.
+ *    SCSI_STATUS_CANCELLED : Discovery was aborted. Command_data is NULL.
  */
 EXTERN int iscsi_discovery_async(struct iscsi_context *iscsi, iscsi_command_cb cb,
 			  void *private_data);
@@ -565,11 +565,11 @@ struct iscsi_discovery_address {
  *
  * Callback parameters :
  * status can be either of :
- *    ISCSI_STATUS_GOOD     : NOP-OUT was successful and the server responded
- *                            with a NOP-IN callback_data is a iscsi_data
- *                            structure containing the data returned from
- *                            the server.
- *    ISCSI_STATUS_CANCELLED: Discovery was aborted. Command_data is NULL.
+ *    SCSI_STATUS_GOOD     : NOP-OUT was successful and the server responded
+ *                           with a NOP-IN callback_data is a iscsi_data
+ *                           structure containing the data returned from
+ *                           the server.
+ *    SCSI_STATUS_CANCELLED : Discovery was aborted. Command_data is NULL.
  * 
  * The callback may be NULL if you only want to let libiscsi count the in-flight
  * NOPs.
@@ -600,15 +600,15 @@ enum iscsi_task_mgmt_funcs {
  *
  * Returns:
  *  0 if the call was initiated and the task mgmt function will be invoked.
- * the connection will be reported through the callback function.
+ *    The result will be reported through the callback function.
  * <0 if there was an error. The callback function will not be invoked.
  *
  * Callback parameters :
  * status can be either of :
- *    ISCSI_STATUS_GOOD     : Connection was successful. Command_data is a pointer to uint32_t
- *                            containing the response code as per RFC3720/10.6.1
+ *    SCSI_STATUS_GOOD     : Connection was successful. Command_data is a pointer to uint32_t
+ *                           containing the response code as per RFC3720/10.6.1
  *
- *    ISCSI_STATUS_ERROR    : Error.
+ *    SCSI_STATUS_ERROR     : Error.
  *
  * The callback will NOT be invoked if the session is explicitely torn down
  * through a call to iscsi_disconnect() or iscsi_destroy_context().
@@ -679,19 +679,19 @@ iscsi_task_mgmt_target_cold_reset_sync(struct iscsi_context *iscsi);
  * The content of command_data depends on the status type.
  *
  * status :
- *   ISCSI_STATUS_GOOD the scsi command completed successfullt on the target.
+ *   SCSI_STATUS_GOOD the scsi command completed successfullt on the target.
  *   If this scsi command returns DATA-IN, that data is stored in an scsi_task
  *   structure returned in the command_data parameter. This buffer will be
  *   automatically freed once the callback returns.
  *
- *   ISCSI_STATUS_CHECK_CONDITION the scsi command failed with a scsi sense.
+ *   SCSI_STATUS_CHECK_CONDITION the scsi command failed with a scsi sense.
  *   Command_data contains a struct scsi_task. When the callback returns,
  *   this buffer will automatically become freed.
  *
- *   ISCSI_STATUS_CANCELLED the scsi command was aborted. Command_data is
+ *   SCSI_STATUS_CANCELLED the scsi command was aborted. Command_data is
  *   NULL.
  *
- *   ISCSI_STATUS_ERROR the command failed. Command_data is NULL.
+ *   SCSI_STATUS_ERROR the command failed. Command_data is NULL.
  */
 
 struct iscsi_data {
@@ -847,6 +847,11 @@ EXTERN struct scsi_task *
 iscsi_write16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int fua, int fua_nv, int group_number,
+		   iscsi_command_cb cb, void *private_data);
+EXTERN struct scsi_task *
+iscsi_writeatomic16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+			 unsigned char *data, uint32_t datalen, int blocksize,
+			 int wrprotect, int dpo, int fua, int group_number,
 		   iscsi_command_cb cb, void *private_data);
 EXTERN struct scsi_task *
 iscsi_orwrite_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
@@ -1040,6 +1045,11 @@ EXTERN struct scsi_task *
 iscsi_write16_sync(struct iscsi_context *iscsi, int lun, uint64_t lba,
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int fua, int fua_nv, int group_number);
+
+EXTERN struct scsi_task *
+iscsi_writeatomic16_sync(struct iscsi_context *iscsi, int lun, uint64_t lba,
+			 unsigned char *data, uint32_t datalen, int blocksize,
+			 int wrprotect, int dpo, int fua, int group_number);
 
 EXTERN struct scsi_task *
 iscsi_orwrite_sync(struct iscsi_context *iscsi, int lun, uint64_t lba,
@@ -1294,6 +1304,12 @@ iscsi_set_bind_interfaces(struct iscsi_context *iscsi, char * interfaces);
 */
 EXTERN void
 iscsi_set_reconnect_max_retries(struct iscsi_context *iscsi, int count);
+
+/* Set to true to have libiscsi use TESTUNITREADY and consume any/all
+   UnitAttentions that may have triggered in the target.
+ */
+EXTERN void
+iscsi_set_no_ua_on_reconnect(struct iscsi_context *iscsi, int state);
 
 #ifdef __cplusplus
 }

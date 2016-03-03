@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2012 by Lee Duncan <lee@gonzoleeman.net>
    
@@ -28,28 +29,25 @@
 void
 test_read10_rdprotect(void)
 {
-	int i, ret;
+        int i;
 
+        /*
+         * Try out different non-zero values for RDPROTECT.
+         */
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test READ10 with non-zero RDPROTECT");
 
-	/*
-	 * Try out different non-zero values for RDPROTECT.
-	 */
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test READ10 with non-zero RDPROTECT");
+        CHECK_FOR_SBC;
 
-	CHECK_FOR_SBC;
+        if (!inq->protect || (rc16 != NULL && !rc16->prot_en)) {
+                logging(LOG_VERBOSE, "Device does not support/use protection information. All commands should fail.");
+                for (i = 1; i < 8; i++) {
+                        READ10(sd, NULL, 0, block_size, block_size,
+                               i, 0, 0, 0, 0, NULL,
+                               EXPECT_INVALID_FIELD_IN_CDB);
+                }
+                return;
+        }
 
-	if (!inq->protect || (rc16 != NULL && !rc16->prot_en)) {
-		logging(LOG_VERBOSE, "Device does not support/use protection information. All commands should fail.");
-		for (i = 1; i < 8; i++) {
-			ret = read10(sd, NULL, 0,
-				     block_size, block_size,
-				     i, 0, 0, 0, 0, NULL,
-				     EXPECT_INVALID_FIELD_IN_CDB);
-			CU_ASSERT_EQUAL(ret, 0);
-		}
-		return;
-	}
-
-	logging(LOG_NORMAL, "No tests for devices that support protection information yet.");
+        logging(LOG_NORMAL, "No tests for devices that support protection information yet.");
 }

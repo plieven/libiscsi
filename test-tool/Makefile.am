@@ -7,7 +7,7 @@ LDADD = ../lib/libiscsi.la
 EXTRA_DIST = README
 
 dist_noinst_HEADERS = iscsi-support.h \
-		      iscsi-test-cu.h
+		      iscsi-test-cu.h iscsi-multipath.h
 
 # libiscsi test tool using cunit
 if ISCSITEST
@@ -15,9 +15,16 @@ bin_PROGRAMS = iscsi-test-cu
 iscsi_test_cu_LDFLAGS = -ldl -lcunit
 iscsi_test_cu_SOURCES = iscsi-test-cu.c \
 	iscsi-support.c \
+	iscsi-multipath.c \
 	test_compareandwrite_simple.c \
 	test_compareandwrite_dpofua.c \
 	test_compareandwrite_miscompare.c \
+	test_extendedcopy_simple.c \
+	test_extendedcopy_param.c \
+	test_extendedcopy_descr_limits.c \
+	test_extendedcopy_descr_type.c \
+	test_extendedcopy_validate_tgt_descr.c \
+	test_extendedcopy_validate_seg_descr.c \
 	test_get_lba_status_simple.c \
 	test_get_lba_status_beyond_eol.c \
 	test_get_lba_status_unmap_single.c \
@@ -62,10 +69,13 @@ iscsi_test_cu_SOURCES = iscsi-test-cu.c \
 	test_preventallow_2_itnexuses.c \
 	test_prin_read_keys_simple.c \
 	test_prin_serviceaction_range.c \
+	test_prin_report_caps.c \
 	test_prout_register_simple.c \
 	test_prout_reserve_simple.c \
 	test_prout_reserve_access.c \
 	test_prout_reserve_ownership.c \
+	test_prout_clear_simple.c \
+	test_prout_preempt.c \
 	test_read6_simple.c \
 	test_read6_beyond_eol.c \
 	test_read10_simple.c \
@@ -91,7 +101,10 @@ iscsi_test_cu_SOURCES = iscsi-test-cu.c \
 	test_readcapacity16_alloclen.c \
 	test_readcapacity16_protection.c \
 	test_readcapacity16_simple.c \
+	test_readcapacity16_support.c \
 	test_readonly_sbc.c \
+	test_receive_copy_results_copy_status.c \
+	test_receive_copy_results_op_params.c \
 	test_report_supported_opcodes_one_command.c \
 	test_report_supported_opcodes_rctd.c \
 	test_report_supported_opcodes_servactv.c \
@@ -163,6 +176,12 @@ iscsi_test_cu_SOURCES = iscsi-test-cu.c \
 	test_write16_wrprotect.c \
 	test_write16_dpofua.c \
 	test_write16_residuals.c \
+	test_writeatomic16_simple.c \
+	test_writeatomic16_beyond_eol.c \
+	test_writeatomic16_0blocks.c \
+	test_writeatomic16_wrprotect.c \
+	test_writeatomic16_dpofua.c \
+	test_writeatomic16_vpd.c \
 	test_writesame10_simple.c \
 	test_writesame10_beyond_eol.c \
 	test_writesame10_0blocks.c \
@@ -199,7 +218,10 @@ iscsi_test_cu_SOURCES = iscsi-test-cu.c \
 	test_writeverify16_wrprotect.c \
 	test_writeverify16_flags.c \
 	test_writeverify16_dpo.c \
-	test_writeverify16_residuals.c
+	test_writeverify16_residuals.c \
+	test_multipathio_simple.c \
+	test_multipathio_reset.c \
+	test_multipathio_compareandwrite.c
 
 endif
 

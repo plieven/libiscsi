@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -29,55 +30,45 @@
 void
 test_verify12_mismatch_no_cmp(void)
 {
-	int i, ret;
-	unsigned char *buf = alloca(256 * block_size);
+        int i;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test VERIFY12 without BYTCHK for blocks 1-255");
-	for (i = 1; i <= 256; i++) {
-		int offset = random() % (i * block_size);
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test VERIFY12 without BYTCHK for blocks 1-255");
+        for (i = 1; i <= 256; i++) {
+                int offset = random() % (i * block_size);
 
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = read12(sd, NULL, 0, i * block_size,
-			     block_size, 0, 0, 0, 0, 0, buf,
-			     EXPECT_STATUS_GOOD);
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                READ12(sd, NULL, 0, i * block_size,
+                       block_size, 0, 0, 0, 0, 0, scratch,
+                       EXPECT_STATUS_GOOD);
 
-		/* flip a random byte in the data */
-		buf[offset] ^= 'X';
-		logging(LOG_VERBOSE, "Flip some bits in the data");
+                /* flip a random byte in the data */
+                scratch[offset] ^= 'X';
+                logging(LOG_VERBOSE, "Flip some bits in the data");
 
-		ret = verify12(sd, 0, i * block_size,
-			       block_size, 0, 0, 0, buf,
-			       EXPECT_STATUS_GOOD);
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] VERIFY12 is not implemented.");
-			CU_PASS("[SKIPPED] Target does not support VERIFY12. Skipping test");
-			return;
-		}
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+                VERIFY12(sd, 0, i * block_size, block_size, 0, 0, 0, scratch,
+                         EXPECT_STATUS_GOOD);
+        }
 
-	logging(LOG_VERBOSE, "Test VERIFY12 without BYTCHK of 1-256 blocks at the end of the LUN");
-	for (i = 1; i <= 256; i++) {
-		int offset = random() % (i * block_size);
+        logging(LOG_VERBOSE, "Test VERIFY12 without BYTCHK of 1-256 blocks at the end of the LUN");
+        for (i = 1; i <= 256; i++) {
+                int offset = random() % (i * block_size);
 
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = read12(sd, NULL, num_blocks - i,
-			     i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			     EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                READ12(sd, NULL, num_blocks - i,
+                       i * block_size, block_size, 0, 0, 0, 0, 0, scratch,
+                       EXPECT_STATUS_GOOD);
 
-		/* flip a random byte in the data */
-		buf[offset] ^= 'X';
-		logging(LOG_VERBOSE, "Flip some bits in the data");
+                /* flip a random byte in the data */
+                scratch[offset] ^= 'X';
+                logging(LOG_VERBOSE, "Flip some bits in the data");
 
-		ret = verify12(sd, num_blocks - i,
-			       i * block_size, block_size, 0, 0, 0, buf,
-			       EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+                VERIFY12(sd, num_blocks - i,
+                         i * block_size, block_size, 0, 0, 0, scratch,
+                         EXPECT_STATUS_GOOD);
+        }
 }

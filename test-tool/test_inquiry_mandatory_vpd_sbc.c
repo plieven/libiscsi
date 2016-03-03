@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 by Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -27,23 +28,23 @@
 void
 test_inquiry_mandatory_vpd_sbc(void)
 {
-	int ret;
+        int ret;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test INQUIRY support for mandatory SBC VPD");
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test INQUIRY support for mandatory SBC VPD");
 
-	CHECK_FOR_SBC;
+        CHECK_FOR_SBC;
 
 
-	logging(LOG_VERBOSE, "SUPPORTED_VPD_PAGES is mandatory for SBC devices. Verify we can read it.");
-	ret = inquiry(sd, NULL,
-		      1, SCSI_INQUIRY_PAGECODE_SUPPORTED_VPD_PAGES, 255,
-		      EXPECT_STATUS_GOOD);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "SUPPORTED_VPD_PAGES is mandatory for SBC devices. Verify we can read it.");
+        ret = inquiry(sd, NULL,
+                      1, SCSI_INQUIRY_PAGECODE_SUPPORTED_VPD_PAGES, 255,
+                      EXPECT_STATUS_GOOD);
+        CU_ASSERT_EQUAL(ret, 0);
 
-	logging(LOG_VERBOSE, "DEVICE_IDENTIFICATION is mandatory for SBC devices. Verify we can read it.");
-	ret = inquiry(sd, NULL,
-		      1, SCSI_INQUIRY_PAGECODE_DEVICE_IDENTIFICATION, 255,
-		      EXPECT_STATUS_GOOD);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "DEVICE_IDENTIFICATION is mandatory for SBC devices. Verify we can read it.");
+        ret = inquiry(sd, NULL,
+                      1, SCSI_INQUIRY_PAGECODE_DEVICE_IDENTIFICATION, 255,
+                      EXPECT_STATUS_GOOD);
+        CU_ASSERT_EQUAL(ret, 0);
 }

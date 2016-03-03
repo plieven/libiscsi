@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -25,102 +26,72 @@
 #include "iscsi-support.h"
 #include "iscsi-test-cu.h"
 
-static void
-init_lun_with_data(unsigned char *buf, uint64_t lba)
-{
-	int ret;
-
-	memset(buf, 'a', 256 * block_size);
-	ret = write10(sd, lba, 256 * block_size,
-		      block_size, 0, 0, 0, 0, 0, buf,
-		      EXPECT_STATUS_GOOD);
-	CU_ASSERT_EQUAL(ret, 0);
-}
-
 void
 test_unmap_simple(void)
 {
-	int i, ret;
-	struct unmap_list list[257];
-	unsigned char *buf = alloca(256 * block_size);
-	unsigned char *zbuf = alloca(256 * block_size);
-        memset(zbuf, 0, 256 * block_size);
+        int i;
+        struct unmap_list list[257];
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test basic UNMAP");
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test basic UNMAP");
 
-	CHECK_FOR_DATALOSS;
-	CHECK_FOR_THIN_PROVISIONING;
-	CHECK_FOR_SBC;
+        CHECK_FOR_DATALOSS;
+        CHECK_FOR_THIN_PROVISIONING;
+        CHECK_FOR_SBC;
 
 
-	logging(LOG_VERBOSE, "Test UNMAP of 1-256 blocks at the start of the "
-		"LUN as a single descriptor");
+        logging(LOG_VERBOSE, "Test UNMAP of 1-256 blocks at the start of the "
+                "LUN as a single descriptor");
 
-	logging(LOG_VERBOSE, "Write 'a' to the first 256 LBAs");
-	init_lun_with_data(buf, 0);
+        logging(LOG_VERBOSE, "Write 'a' to the first 256 LBAs");
+        memset(scratch, 'a', 256 * block_size);
+        WRITE10(sd, 0, 256 * block_size,
+                block_size, 0, 0, 0, 0, 0, scratch,
+                EXPECT_STATUS_GOOD);
 
-	for (i = 1; i <= 256; i++) {
-		logging(LOG_VERBOSE, "UNMAP blocks 0-%d", i);
-		list[0].lba = 0;
-		list[0].num = i;
-		ret = unmap(sd, 0, list, 1,
-			    EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
+        for (i = 1; i <= 256; i++) {
+                logging(LOG_VERBOSE, "UNMAP blocks 0-%d", i);
+                list[0].lba = 0;
+                list[0].num = i;
+                UNMAP(sd, 0, list, 1,
+                      EXPECT_STATUS_GOOD);
 
-		logging(LOG_VERBOSE, "Read blocks 0-%d", i);
-		ret = read10(sd, NULL, 0, i * block_size,
-			     block_size, 0, 0, 0, 0, 0, buf,
-			     EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
+                logging(LOG_VERBOSE, "Read blocks 0-%d", i);
+                READ10(sd, NULL, 0, i * block_size,
+                       block_size, 0, 0, 0, 0, 0, scratch,
+                       EXPECT_STATUS_GOOD);
 
-		if (rc16 && rc16->lbprz) {
-			logging(LOG_VERBOSE, "LBPRZ==1 All UNMAPPED blocks "
-				"should read back as 0");
-			if (memcmp(buf, zbuf, i * block_size)) {
-				logging(LOG_NORMAL, "[FAILED] Blocks did not "
-					"read back as zero");
-				CU_FAIL("[FAILED] Blocks did not read back "
-					"as zero");
-			} else {
-				logging(LOG_VERBOSE, "[SUCCESS] Blocks read "
-					"back as zero");
-			}
-		}
-	}
+                if (rc16 && rc16->lbprz) {
+                        logging(LOG_VERBOSE, "LBPRZ==1 All UNMAPPED blocks "
+                                "should read back as 0");
+                        ALL_ZERO(scratch, i * block_size);
+                }
+        }
 
-	logging(LOG_VERBOSE, "Test UNMAP of 1-256 blocks at the start of the "
-		"LUN with one descriptor per block");
+        logging(LOG_VERBOSE, "Test UNMAP of 1-256 blocks at the start of the "
+                "LUN with one descriptor per block");
 
-	logging(LOG_VERBOSE, "Write 'a' to the first 256 LBAs");
-	init_lun_with_data(buf, 0);
+        logging(LOG_VERBOSE, "Write 'a' to the first 256 LBAs");
+        memset(scratch, 'a', 256 * block_size);
+        WRITE10(sd, 0, 256 * block_size,
+                block_size, 0, 0, 0, 0, 0, scratch,
+                EXPECT_STATUS_GOOD);
 
-	CU_ASSERT_EQUAL(ret, 0);
-	for (i = 0; i < 256; i++) {
-		list[i].lba = i;
-		list[i].num = 1;
-		ret = unmap(sd, 0, list, i + 1,
-			    EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
+        for (i = 0; i < 256; i++) {
+                list[i].lba = i;
+                list[i].num = 1;
+                UNMAP(sd, 0, list, i + 1,
+                      EXPECT_STATUS_GOOD);
 
-		logging(LOG_VERBOSE, "Read blocks 0-%d", i);
-		ret = read10(sd, NULL, 0, i * block_size,
-			     block_size, 0, 0, 0, 0, 0, buf,
-			     EXPECT_STATUS_GOOD);
-		CU_ASSERT_EQUAL(ret, 0);
+                logging(LOG_VERBOSE, "Read blocks 0-%d", i);
+                READ10(sd, NULL, 0, i * block_size,
+                       block_size, 0, 0, 0, 0, 0, scratch,
+                       EXPECT_STATUS_GOOD);
 
-		if (rc16 && rc16->lbprz) {
-			logging(LOG_VERBOSE, "LBPRZ==1 All UNMAPPED blocks "
-				"should read back as 0");
-			if (memcmp(buf, zbuf, i * block_size)) {
-				logging(LOG_NORMAL, "[FAILED] Blocks did not "
-					"read back as zero");
-				CU_FAIL("[FAILED] Blocks did not read back "
-					"as zero");
-			} else {
-				logging(LOG_VERBOSE, "[SUCCESS] Blocks read "
-					"back as zero");
-			}
-		}
-	}
+                if (rc16 && rc16->lbprz) {
+                        logging(LOG_VERBOSE, "LBPRZ==1 All UNMAPPED blocks "
+                                "should read back as 0");
+                        ALL_ZERO(scratch, i * block_size);
+                }
+        }
 }

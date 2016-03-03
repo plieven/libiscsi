@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -28,31 +29,18 @@
 void
 test_get_lba_status_simple(void)
 {
-	int i, ret;
+        int i;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test GET_LBA_STATUS of 1-256 blocks at the start of the LUN");
-	for (i = 1; i <= 256; i++) {
-		ret = get_lba_status(sd, NULL,0, 24,
-				     EXPECT_STATUS_GOOD);
-		if (ret == -2) {
-			CU_PASS("[SKIPPED] Target does not support GET_LBA_STATUS. Skipping test");
-			return;
-		}
-		if (ret != 0) {
-			CU_FAIL("[FAILED] GET_LBA_STATUS command failed");
-			return;
-		}
-	}
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test GETLBASTATUS of 1-256 blocks at the start of the LUN");
+        for (i = 1; i <= 256; i++) {
+                GETLBASTATUS(sd, NULL, i, 24,
+                             EXPECT_STATUS_GOOD);
+        }
 
-
-	logging(LOG_VERBOSE, "Test GET_LBA_STATUS of 1-256 blocks at the end of the LUN");
-	for (i = 1; i <= 256; i++) {
-		ret = get_lba_status(sd, NULL, num_blocks - i, 24,
-				     EXPECT_STATUS_GOOD);
-		if (ret != 0) {
-			CU_FAIL("[FAILED] GET_LBA_STATUS command failed");
-			return;
-		}
-	}
+        logging(LOG_VERBOSE, "Test GETLBASTATUS of 1-256 blocks at the end of the LUN");
+        for (i = 1; i <= 256; i++) {
+                GETLBASTATUS(sd, NULL, num_blocks - i, 24,
+                             EXPECT_STATUS_GOOD);
+        }
 }

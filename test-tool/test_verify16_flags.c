@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
    
@@ -29,25 +30,13 @@
 void
 test_verify16_flags(void)
 {
-	int ret;
-	unsigned char *buf = alloca(block_size);
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test VERIFY16 flags");
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test VERIFY16 flags");
+        READ16(sd, NULL, 0, block_size, block_size, 0, 0, 0, 0, 0, scratch,
+               EXPECT_STATUS_GOOD);
 
-	ret = read16(sd, NULL, 0, block_size,
-		     block_size, 0, 0, 0, 0, 0, buf,
-		     EXPECT_STATUS_GOOD);
-
-
-	logging(LOG_VERBOSE, "Test VERIFY16 with BYTCHK==1");
-	ret = verify16(sd, 0, block_size,
-		       block_size, 0, 0, 1, buf,
-		       EXPECT_STATUS_GOOD);
-	if (ret == -2) {
-		logging(LOG_NORMAL, "[SKIPPED] VERIFY16 is not implemented.");
-		CU_PASS("[SKIPPED] Target does not support VERIFY16. Skipping test");
-		return;
-	}
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, "Test VERIFY16 with BYTCHK==1");
+        VERIFY16(sd, 0, block_size, block_size, 0, 0, 1, scratch,
+                 EXPECT_STATUS_GOOD);
 }

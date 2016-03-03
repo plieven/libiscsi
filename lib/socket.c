@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /*
    Copyright (C) 2010 by Ronnie Sahlberg <ronniesahlberg@gmail.com>
 
@@ -140,7 +141,7 @@ static int set_tcp_sockopt(int sockfd, int optname, int value)
 {
 	int level;
 
-	#if defined(__FreeBSD__) || defined(__sun) || (defined(__APPLE__) && defined(__MACH__))
+	#ifndef SOL_TCP
 	struct protoent *buf;
 
 	if ((buf = getprotobyname("tcp")) != NULL)
@@ -441,7 +442,13 @@ iscsi_queue_length(struct iscsi_context *iscsi)
 ssize_t
 iscsi_iovector_readv_writev(struct iscsi_context *iscsi, struct scsi_iovector *iovector, uint32_t pos, ssize_t count, int do_write)
 {
-	if (iovector->iov == NULL) {
+        struct scsi_iovec *iov, *iov2;
+        int niov;
+        uint32_t len2;
+        size_t _len2;
+        ssize_t n;
+
+        if (iovector->iov == NULL) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -462,7 +469,7 @@ iscsi_iovector_readv_writev(struct iscsi_context *iscsi, struct scsi_iovector *i
 	}
 
 	/* iov is a pointer to the first iovec to pass */
-	struct scsi_iovec *iov = &iovector->iov[iovector->consumed];
+	iov = &iovector->iov[iovector->consumed];
 	pos -= iovector->offset;
 
 	/* forward until iov points to the first iov to pass */
@@ -477,11 +484,9 @@ iscsi_iovector_readv_writev(struct iscsi_context *iscsi, struct scsi_iovector *i
 		iov = &iovector->iov[iovector->consumed];
 	}
 
-	/* iov2 is a pointer to the last iovec to pass */
-	struct scsi_iovec *iov2 = iov;
-
-	int niov=1; /* number of iovectors to pass */
-	uint32_t len2 = pos + count; /* adjust length of iov2 */
+	iov2 = iov;         /* iov2 is a pointer to the last iovec to pass */
+	niov = 1;           /* number of iovectors to pass */
+	len2 = pos + count; /* adjust length of iov2 */
 
 	/* forward until iov2 points to the last iovec we pass later. it might
 	   happen that we have a lot of iovectors but are limited by count */
@@ -497,14 +502,13 @@ iscsi_iovector_readv_writev(struct iscsi_context *iscsi, struct scsi_iovector *i
 
 	/* we might limit the length of the last iovec we pass to readv/writev
 	   store its orignal length to restore it later */
-	size_t _len2 = iov2->iov_len;
+	_len2 = iov2->iov_len;
 
 	/* adjust base+len of start iovec and len of last iovec */
 	iov2->iov_len = len2;
 	iov->iov_base = (void*) ((uintptr_t)iov->iov_base + pos);
 	iov->iov_len -= pos;
 
-	ssize_t n;
 	if (do_write) {
 		n = writev(iscsi->fd, (struct iovec*) iov, niov);
 	} else {
@@ -643,6 +647,13 @@ iscsi_write_to_socket(struct iscsi_context *iscsi)
 	size_t total;
 	struct iscsi_pdu *pdu;
 	static char padding_buf[3];
+	int socket_flags = 0;
+
+#ifdef MSG_NOSIGNAL
+	socket_flags |= MSG_NOSIGNAL;
+#elif SO_NOSIGPIPE
+	socket_flags |= SO_NOSIGPIPE;
+#endif
 
 	if (iscsi->fd == -1) {
 		iscsi_set_error(iscsi, "trying to write but not connected");
@@ -670,7 +681,7 @@ iscsi_write_to_socket(struct iscsi_context *iscsi)
 			/* pop first element of the outqueue */
 			if (iscsi_serial32_compare(iscsi->outqueue->cmdsn, iscsi->expcmdsn) < 0 &&
 				(iscsi->outqueue->outdata.data[0] & 0x3f) != ISCSI_PDU_DATA_OUT) {
-				iscsi_set_error(iscsi, "iscsi_write_to_scoket: outqueue[0]->cmdsn < expcmdsn (%08x < %08x) opcode %02x",
+				iscsi_set_error(iscsi, "iscsi_write_to_socket: outqueue[0]->cmdsn < expcmdsn (%08x < %08x) opcode %02x",
 				                iscsi->outqueue->cmdsn, iscsi->expcmdsn, iscsi->outqueue->outdata.data[0] & 0x3f);
 				return -1;
 			}
@@ -697,7 +708,7 @@ iscsi_write_to_socket(struct iscsi_context *iscsi)
 			count = send(iscsi->fd,
 				     pdu->outdata.data + pdu->outdata_written,
 				     pdu->outdata.size - pdu->outdata_written,
-				     0);
+				     socket_flags);
 			if (count == -1) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
 					return 0;
@@ -746,7 +757,7 @@ iscsi_write_to_socket(struct iscsi_context *iscsi)
 
 		/* Write padding */
 		if (pdu->payload_written < total) {
-			count = send(iscsi->fd, padding_buf, total - pdu->payload_written, 0);
+			count = send(iscsi->fd, padding_buf, total - pdu->payload_written, socket_flags);
 			if (count == -1) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
 					return 0;

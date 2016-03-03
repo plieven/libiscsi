@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /* 
    Copyright (C) 2013 Ronnie Sahlberg <ronneisahlberg@gmail.com>
    
@@ -28,63 +29,53 @@
 void
 test_orwrite_beyond_eol(void)
 { 
-	int i, ret;
-	unsigned char *buf = alloca(256 * block_size);
+        int i;
 
-	CHECK_FOR_DATALOSS;
-	CHECK_FOR_SBC;
+        CHECK_FOR_DATALOSS;
+        CHECK_FOR_SBC;
 
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test ORWRITE 1-256 blocks one block beyond the end");
-	memset(buf, 0xa6, 256 * block_size);
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = orwrite(sd, num_blocks + 1 - i,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		if (ret == -2) {
-			logging(LOG_NORMAL, "[SKIPPED] ORWRITE is not implemented.");
-			CU_PASS("ORWRITE is not implemented.");
-			return;
-		}	
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test ORWRITE 1-256 blocks one block beyond the end");
+        memset(scratch, 0xa6, 256 * block_size);
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                ORWRITE(sd, num_blocks + 1 - i,
+                        i * block_size, block_size, 0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 
 
-	logging(LOG_VERBOSE, "Test ORWRITE 1-256 blocks at LBA==2^63");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = orwrite(sd, 0x8000000000000000ULL,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, "Test ORWRITE 1-256 blocks at LBA==2^63");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                ORWRITE(sd, 0x8000000000000000ULL, i * block_size, block_size,
+                        0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 
 
-	logging(LOG_VERBOSE, "Test ORWRITE 1-256 blocks at LBA==-1");
-	for (i = 1; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = orwrite(sd, -1,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, "Test ORWRITE 1-256 blocks at LBA==-1");
+        for (i = 1; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                ORWRITE(sd, -1, i * block_size, block_size,
+                        0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 
 
-	logging(LOG_VERBOSE, "Test ORWRITE 2-256 blocks all but one block beyond the end");
-	for (i = 2; i <= 256; i++) {
-		if (maximum_transfer_length && maximum_transfer_length < i) {
-			break;
-		}
-		ret = orwrite(sd, num_blocks - 1,
-			      i * block_size, block_size, 0, 0, 0, 0, 0, buf,
-			      EXPECT_LBA_OOB);
-		CU_ASSERT_EQUAL(ret, 0);
-	}
+        logging(LOG_VERBOSE, "Test ORWRITE 2-256 blocks all but one block beyond the end");
+        for (i = 2; i <= 256; i++) {
+                if (maximum_transfer_length && maximum_transfer_length < i) {
+                        break;
+                }
+                ORWRITE(sd, num_blocks - 1, i * block_size, block_size,
+                        0, 0, 0, 0, 0, scratch,
+                        EXPECT_LBA_OOB);
+        }
 }

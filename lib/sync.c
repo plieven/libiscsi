@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /*
    Copyright (C) 2010 by Ronnie Sahlberg <ronniesahlberg@gmail.com>
 
@@ -220,10 +221,8 @@ iscsi_task_mgmt_sync_cb(struct iscsi_context *iscsi, int status,
 {
 	struct iscsi_sync_state *state = private_data;
 
-	if (state != NULL) {
-		state->status    = status;
-		state->finished = 1;
-	}
+	state->status   = status;
+	state->finished = 1;
 
 	/* The task mgmt command might have completed successfully
 	 * but the target might have responded with
@@ -247,7 +246,7 @@ iscsi_task_mgmt_sync_cb(struct iscsi_context *iscsi, int status,
 			break;
 		}
 
-		state->status = SCSI_STATUS_ERROR;
+                state->status = SCSI_STATUS_ERROR;
 	}
 }
 
@@ -818,6 +817,29 @@ iscsi_write16_sync(struct iscsi_context *iscsi, int lun, uint64_t lba,
 			       scsi_sync_cb, &state) == NULL) {
 		iscsi_set_error(iscsi,
 				"Failed to send Write16 command");
+		return NULL;
+	}
+
+	event_loop(iscsi, &state);
+
+	return state.task;
+}
+
+struct scsi_task *
+iscsi_writeatomic16_sync(struct iscsi_context *iscsi, int lun, uint64_t lba,
+			 unsigned char *data, uint32_t datalen, int blocksize,
+			 int wrprotect, int dpo, int fua, int group_number)
+{
+	struct iscsi_sync_state state;
+
+	memset(&state, 0, sizeof(state));
+
+	if (iscsi_writeatomic16_task(iscsi, lun, lba,
+				     data, datalen, blocksize, wrprotect,
+				     dpo, fua, group_number,
+				     scsi_sync_cb, &state) == NULL) {
+		iscsi_set_error(iscsi,
+				"Failed to send WriteAtomic16 command");
 		return NULL;
 	}
 

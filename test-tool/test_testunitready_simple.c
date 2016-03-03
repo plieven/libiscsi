@@ -1,3 +1,4 @@
+/* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
 /*
    Copyright (C) 2012 by Lee Duncan <lee@gonzoleeman.net>
 
@@ -26,11 +27,8 @@
 void
 test_testunitready_simple(void)
 {
-	int ret;
-
-	logging(LOG_VERBOSE, LOG_BLANK_LINE);
-	logging(LOG_VERBOSE, "Test TESTUNITREADY");
-	ret = testunitready(sd,
-			    EXPECT_STATUS_GOOD);
-	CU_ASSERT_EQUAL(ret, 0);
+        logging(LOG_VERBOSE, LOG_BLANK_LINE);
+        logging(LOG_VERBOSE, "Test TESTUNITREADY");
+        TESTUNITREADY(sd,
+                      EXPECT_STATUS_GOOD);
 }
