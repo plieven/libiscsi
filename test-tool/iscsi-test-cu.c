@@ -227,6 +227,7 @@ static CU_TestInfo tests_read10[] = {
         { (char *)"ZeroBlocks", test_read10_0blocks },
         { (char *)"ReadProtect", test_read10_rdprotect },
         { (char *)"DpoFua", test_read10_dpofua },
+        { (char *)"Async", test_async_read },
         CU_TEST_INFO_NULL
 };
 
@@ -377,6 +378,7 @@ static CU_TestInfo tests_write10[] = {
         { (char *)"ZeroBlocks", test_write10_0blocks },
         { (char *)"WriteProtect", test_write10_wrprotect },
         { (char *)"DpoFua", test_write10_dpofua },
+        { (char *)"Async", test_async_write },
         CU_TEST_INFO_NULL
 };
 
@@ -466,6 +468,7 @@ static CU_TestInfo tests_multipathio[] = {
         { (char *)"Simple", test_multipathio_simple },
         { (char *)"Reset", test_multipathio_reset },
         { (char *)"CompareAndWrite", test_multipathio_compareandwrite },
+        { (char *)"CompareAndWriteAsync", test_mpio_async_caw },
         CU_TEST_INFO_NULL
 };
 
@@ -556,6 +559,11 @@ static CU_TestInfo tests_iscsi_residuals[] = {
         CU_TEST_INFO_NULL
 };
 
+static CU_TestInfo tests_iscsi_tmf[] = {
+        { (char *)"AbortTaskSimpleAsync", test_async_abort_simple },
+        CU_TEST_INFO_NULL
+};
+
 /* iSCSI protocol tests */
 static libiscsi_suite_info iscsi_suites[] = {
         { "iSCSIcmdsn", NON_PGR_FUNCS,
@@ -564,6 +572,8 @@ static libiscsi_suite_info iscsi_suites[] = {
           tests_iscsi_datasn },
         { "iSCSIResiduals", NON_PGR_FUNCS,
           tests_iscsi_residuals },
+	{ "iSCSITMF", NON_PGR_FUNCS,
+	  tests_iscsi_tmf },
         { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -618,6 +628,7 @@ static libiscsi_suite_info all_suites[] = {
         { "iSCSIcmdsn", NON_PGR_FUNCS, tests_iscsi_cmdsn },
         { "iSCSIdatasn", NON_PGR_FUNCS, tests_iscsi_datasn },
         { "iSCSIResiduals", NON_PGR_FUNCS, tests_iscsi_residuals },
+	{ "iSCSITMF", NON_PGR_FUNCS, tests_iscsi_tmf },
         { "MultipathIO", NON_PGR_FUNCS, tests_multipathio },
         { NULL, NULL, NULL, NULL, NULL, NULL },
 };
@@ -754,6 +765,7 @@ int
 suite_init(void)
 {
         int i;
+        char const *initiatornames[MPATH_MAX_DEVS] = { initiatorname1, initiatorname2 };
 
         for (i = 0; i < mp_num_sds; i++) {
                 if (!mp_sds[i]->iscsi_url) {
@@ -763,7 +775,7 @@ suite_init(void)
                         iscsi_logout_sync(mp_sds[i]->iscsi_ctx);
                         iscsi_destroy_context(mp_sds[i]->iscsi_ctx);
                 }
-                mp_sds[i]->iscsi_ctx = iscsi_context_login(initiatorname1,
+                mp_sds[i]->iscsi_ctx = iscsi_context_login(initiatornames[i],
                                                         mp_sds[i]->iscsi_url,
                                                         &mp_sds[i]->iscsi_lun);
                 if (mp_sds[i]->iscsi_ctx == NULL) {
