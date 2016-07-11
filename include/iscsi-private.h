@@ -372,6 +372,8 @@ void iscsi_timeout_scan(struct iscsi_context *iscsi);
 void iscsi_reconnect_cb(struct iscsi_context *iscsi _U_, int status,
                         void *command_data, void *private_data);
 
+void iscsi_dump_pdu_header(struct iscsi_context *iscsi, unsigned char *data);
+
 #ifdef __cplusplus
 }
 #endif
