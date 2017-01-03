@@ -640,7 +640,7 @@ iscsi_read_from_socket(struct iscsi_context *iscsi)
 		ISCSI_LIST_ADD_END(&iscsi->inqueue, in);
 		inqueue_len++;
 		iscsi->incoming = NULL;
-	} while (inqueue_len < waitpdu_len && iscsi->is_loggedin);
+	} while (iscsi->tcp_nonblocking && inqueue_len < waitpdu_len && iscsi->is_loggedin);
 
 	while (iscsi->inqueue != NULL) {
 		struct iscsi_in_pdu *current = iscsi->inqueue;
