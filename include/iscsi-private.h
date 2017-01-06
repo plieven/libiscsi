@@ -58,7 +58,6 @@ struct iscsi_in_pdu {
 	unsigned char *data;
 };
 void iscsi_free_iscsi_in_pdu(struct iscsi_context *iscsi, struct iscsi_in_pdu *in);
-void iscsi_free_iscsi_inqueue(struct iscsi_context *iscsi, struct iscsi_in_pdu *inqueue);
 
 /* size of chap response field */
 #define CHAP_R_SIZE 16
@@ -129,7 +128,6 @@ struct iscsi_context {
 	struct iscsi_pdu *waitpdu;
 
 	struct iscsi_in_pdu *incoming;
-	struct iscsi_in_pdu *inqueue;
 
 	uint32_t max_burst_length;
 	uint32_t first_burst_length;
