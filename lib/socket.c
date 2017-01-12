@@ -640,7 +640,7 @@ iscsi_read_from_socket(struct iscsi_context *iscsi)
 			return -1;
 		}
 		iscsi_free_iscsi_in_pdu(iscsi, in);
-	} while (iscsi->tcp_nonblocking && iscsi->waitpdu && iscsi->is_loggedin);
+	} while (iscsi->waitpdu && iscsi->is_loggedin);
 
 
 	return 0;
