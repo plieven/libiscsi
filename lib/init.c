@@ -215,7 +215,7 @@ iscsi_create_context(const char *initiator_name)
 	iscsi->tcp_keepcnt=3;
 	iscsi->tcp_keepintvl=30;
 	iscsi->tcp_keepidle=30;
-	
+
 	iscsi->reconnect_max_retries = -1;
         iscsi->chap_auth = ISCSI_CHAP_MD5;
 
@@ -346,6 +346,26 @@ iscsi_set_targetname(struct iscsi_context *iscsi, const char *target_name)
 }
 
 int
+iscsi_set_unit_serial_number(struct iscsi_context *iscsi, const char *usn)
+{
+	if (iscsi->is_loggedin != 0) {
+		iscsi_set_error(iscsi, "Already logged in when adding "
+				"unit_serial_number");
+		return -1;
+	}
+
+	strncpy(iscsi->unit_serial_number,usn,MAX_STRING_SIZE);
+
+	return 0;
+}
+
+const char *
+iscsi_get_unit_serial_number(struct iscsi_context *iscsi)
+{
+	return iscsi ? iscsi->unit_serial_number : "";
+}
+
+int
 iscsi_destroy_context(struct iscsi_context *iscsi)
 {
 	if (iscsi == NULL) {
@@ -383,7 +403,7 @@ iscsi_destroy_context(struct iscsi_context *iscsi)
 
         iscsi_mt_spin_destroy(&iscsi->iscsi_lock);
         iscsi_mt_mutex_destroy(&iscsi->iscsi_mutex);
-        
+
 	memset(iscsi, 0, sizeof(struct iscsi_context));
 	free(iscsi);
 
@@ -521,6 +541,7 @@ iscsi_parse_url(struct iscsi_context *iscsi, const char *url, int full)
 	char *passwd = NULL;
 	char *target_user = NULL;
 	char *target_passwd = NULL;
+	char *usn = NULL;
 	char *target = NULL;
 	char *lun;
 	char *tmp;
@@ -628,6 +649,9 @@ iscsi_parse_url(struct iscsi_context *iscsi, const char *url, int full)
 				iscsi->rdma_ack_timeout = atoi(value);
 #endif
 			}
+			if (!strcmp(key, "force_usn")) {
+				usn = value;
+			}
 			tmp = next;
 		}
 	}
@@ -691,7 +715,7 @@ iscsi_parse_url(struct iscsi_context *iscsi, const char *url, int full)
 			*tmp=0;
 		}
 	}
-	
+
 	if (iscsi != NULL) {
 		iscsi_url = iscsi_malloc(iscsi, sizeof(struct iscsi_url));
 	} else {
@@ -743,6 +767,9 @@ iscsi_parse_url(struct iscsi_context *iscsi, const char *url, int full)
 		iscsi_set_targetname(iscsi, iscsi_url->target);
 		iscsi_set_initiator_username_pwd(iscsi, iscsi_url->user, iscsi_url->passwd);
 		iscsi_set_target_username_pwd(iscsi, iscsi_url->target_user, iscsi_url->target_passwd);
+		if (usn) {
+			iscsi_set_unit_serial_number(iscsi, usn);
+		}
 	}
 
 	return iscsi_url;
@@ -854,4 +881,3 @@ iscsi_set_auth(struct iscsi_context *iscsi, enum iscsi_chap_auth auth)
 {
         iscsi->chap_auth = auth;
 }
-

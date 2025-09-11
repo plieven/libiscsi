@@ -116,6 +116,7 @@ struct iscsi_context {
 	char portal[MAX_STRING_SIZE+1];
 	char alias[MAX_STRING_SIZE+1];
 	char bind_interfaces[MAX_STRING_SIZE+1];
+	char unit_serial_number[MAX_STRING_SIZE+1];
 
         enum iscsi_chap_auth chap_auth;
 	char user[MAX_STRING_SIZE+1];

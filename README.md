@@ -48,9 +48,10 @@ target_password=<password>
 header_digest=<crc32c|none>
 data_digest=<crc32c|none>
 auth=<md5|sha1|sha-256|sha3-256>
+force_usn=<unit_serial_number>
+
 Transport:
 iser
-
 
 Example:
     iscsi://server/iqn.ronnie.test/1
@@ -193,7 +194,7 @@ To run those tests you would specify
 
 Test discovery
 --------------
-To discover which tests exist you can use the command 
+To discover which tests exist you can use the command
   iscsi-test-cu --list
 
 Examples
