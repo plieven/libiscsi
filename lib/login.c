@@ -117,11 +117,19 @@ iscsi_login_add_targetname(struct iscsi_context *iscsi, struct iscsi_pdu *pdu)
 		return -1;
 	}
 
-	if (snprintf(str, MAX_STRING_SIZE, "TargetName=%s", iscsi->target_name) == -1) {
-		iscsi_set_error(iscsi, "Out-of-memory: aprintf failed.");
-		return -1;
+	if (iscsi->target_address[0] && iscsi->target_name2[0] &&
+		  getenv("LIBISCSI_ALLOW_TARGETNAME_REDIRECT") != NULL) {
+		if (snprintf(str, MAX_STRING_SIZE, "TargetName=%s", iscsi->target_name2) == -1) {
+			iscsi_set_error(iscsi, "Out-of-memory: aprintf failed.");
+			return -1;
+		}
+		ISCSI_LOG(iscsi, 2, "rewriting TargetName to %s (non-RFC-compliant!)", iscsi->target_name2);
+	} else {
+		if (snprintf(str, MAX_STRING_SIZE, "TargetName=%s", iscsi->target_name) == -1) {
+			iscsi_set_error(iscsi, "Out-of-memory: aprintf failed.");
+			return -1;
+		}
 	}
-
 	if (iscsi_pdu_add_data(iscsi, pdu, (unsigned char *)str, strlen(str)+1)
 	    != 0) {
 		iscsi_set_error(iscsi, "Out-of-memory: pdu add data failed.");
@@ -553,7 +561,7 @@ iscsi_login_add_authmethod(struct iscsi_context *iscsi, struct iscsi_pdu *pdu)
 
 	return 0;
 }
-	
+
 static int
 iscsi_login_add_authalgorithm(struct iscsi_context *iscsi, struct iscsi_pdu *pdu)
 {
@@ -576,7 +584,7 @@ iscsi_login_add_authalgorithm(struct iscsi_context *iscsi, struct iscsi_pdu *pdu
 
 	return 0;
 }
-	
+
 static int
 iscsi_login_add_chap_username(struct iscsi_context *iscsi, struct iscsi_pdu *pdu)
 {
@@ -880,7 +888,7 @@ iscsi_login_add_chap_response(struct iscsi_context *iscsi, struct iscsi_pdu *pdu
 	char digest[MAX_CHAP_R_SIZE];
 	int i;
         int chap_r_size = 0;
-        
+
 	if (iscsi->current_phase != ISCSI_PDU_LOGIN_CSG_SECNEG
 	|| iscsi->secneg_phase != ISCSI_LOGIN_SECNEG_PHASE_SEND_RESPONSE) {
 		return 0;
@@ -903,7 +911,7 @@ iscsi_login_add_chap_response(struct iscsi_context *iscsi, struct iscsi_pdu *pdu
                 chap_r_size = 32;
                 break;
         }
-        
+
         compute_chap_r(iscsi, iscsi->chap_i,
                        (unsigned char *)iscsi->passwd,
                        (unsigned char *)iscsi->chap_c,
@@ -938,7 +946,7 @@ iscsi_login_add_chap_response(struct iscsi_context *iscsi, struct iscsi_pdu *pdu
 	if (iscsi->target_user[0]) {
 		char target_chap_c[MAX_CHAP_R_SIZE * 2] = {0};
 		char target_chap_c_hex[MAX_CHAP_R_SIZE * 4 + 1] = { 0 };
-		
+
 		iscsi->target_chap_i++;
 		snprintf(str, MAX_STRING_SIZE, "CHAP_I=%d",
 			 iscsi->target_chap_i);
@@ -998,7 +1006,7 @@ iscsi_login_async(struct iscsi_context *iscsi, iscsi_command_cb cb,
 				" giving up.");
 		return -1;
 	}
- 
+
 	if (iscsi->is_loggedin != 0) {
 		iscsi_set_error(iscsi, "Trying to login while already logged "
 				"in.");
@@ -1330,6 +1338,10 @@ iscsi_process_login_reply(struct iscsi_context *iscsi, struct iscsi_pdu *pdu,
 			strncpy(iscsi->target_address,ptr+14,MAX_STRING_SIZE);
 		}
 
+		if (!strncmp(ptr, "TargetName=", 11)) {
+			strncpy(iscsi->target_name2,ptr+11,MAX_ISCSI_NAME_SIZE);
+		}
+
 		if (!strncmp(ptr, "HeaderDigest=", 13)) {
 			if (!strcmp(ptr + 13, "CRC32C")) {
 				iscsi->want_header_digest
@@ -1452,7 +1464,7 @@ iscsi_process_login_reply(struct iscsi_context *iscsi, struct iscsi_pdu *pdu,
                                 chap_r_size = 32;
                                 break;
                         }
-                        
+
 			if (len != 9 + 2 * chap_r_size) {
 				iscsi_set_error(iscsi, "Wrong size of CHAP_R"
 						" received from target.");
@@ -1486,7 +1498,10 @@ iscsi_process_login_reply(struct iscsi_context *iscsi, struct iscsi_pdu *pdu,
 	}
 
 	if (status == SCSI_STATUS_REDIRECT && iscsi->target_address[0]) {
-		ISCSI_LOG(iscsi, 2, "target requests redirect to %s",iscsi->target_address);
+		ISCSI_LOG(iscsi, 2, "target requests redirect to portal %s",iscsi->target_address);
+		if (iscsi->target_name2[0] && getenv("LIBISCSI_ALLOW_TARGETNAME_REDIRECT") != NULL) {
+			ISCSI_LOG(iscsi, 2, "target requests redirect to targetname %s (non-RFC-compliant!)",iscsi->target_name2);
+		}
 		if (pdu->callback) {
 			pdu->callback(iscsi, SCSI_STATUS_REDIRECT, NULL,
 			              pdu->private_data);
