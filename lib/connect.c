@@ -101,15 +101,20 @@ iscsi_inquiry_page_0x80_cb(struct iscsi_context *iscsi, int status,
 
 	if (!status) {
 		inq = scsi_datain_unmarshall(task);
-		if (!iscsi->unit_serial_number[0]) {
-			ISCSI_LOG(iscsi, 2, "unit serial number is [%s]", inq->usn);
-			strncpy(iscsi->unit_serial_number, inq->usn, MAX_STRING_SIZE);
-		} else if (strncmp(iscsi->unit_serial_number, inq->usn, MAX_STRING_SIZE)) {
-			iscsi_set_error(iscsi, "unit serial number mismatch. got [%s] expected [%s]",
-											inq->usn, iscsi->unit_serial_number);
-			status = 1;
+		if (inq != NULL) {
+			if (!iscsi->unit_serial_number[0]) {
+				ISCSI_LOG(iscsi, 2, "unit serial number is [%s]", inq->usn);
+				strncpy(iscsi->unit_serial_number, inq->usn, MAX_STRING_SIZE);
+			} else if (strncmp(iscsi->unit_serial_number, inq->usn, MAX_STRING_SIZE)) {
+				iscsi_set_error(iscsi, "unit serial number mismatch. got [%s] expected [%s]",
+												inq->usn, iscsi->unit_serial_number);
+				status = 1;
+			} else {
+				ISCSI_LOG(iscsi, 2, "successfully validated unit serial number [%s]", inq->usn);
+			}
 		} else {
-			ISCSI_LOG(iscsi, 2, "successfully validated unit serial number [%s]", inq->usn);
+			iscsi_set_error(iscsi, "iscsi_inquiry_task datain_unmarshall failed. could not read vpd page 0x80.");
+			status = 1;
 		}
 	} else {
 		iscsi_set_error(iscsi, "iscsi_inquiry_task failed. could not read vpd page 0x80.");
