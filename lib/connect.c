@@ -76,6 +76,55 @@ iscsi_testunitready_connect(struct iscsi_context *iscsi, int lun,
 	return task;
 }
 
+static struct scsi_task *
+iscsi_inquiry_page_0x80_connect(struct iscsi_context *iscsi, int lun,
+                                iscsi_command_cb cb, void *private_data)
+{
+	struct scsi_task *task;
+	struct iscsi_context *old_iscsi = iscsi->old_iscsi;
+
+	iscsi->old_iscsi = NULL;
+	task = iscsi_inquiry_task(iscsi, lun, 1, 0x80, MAX_STRING_SIZE + 64,
+		                        cb, private_data);
+	iscsi->old_iscsi = old_iscsi;
+
+	return task;
+}
+
+static void
+iscsi_inquiry_page_0x80_cb(struct iscsi_context *iscsi, int status,
+		       void *command_data, void *private_data)
+{
+	struct connect_task *ct = private_data;
+	struct scsi_task *task = command_data;
+	struct scsi_inquiry_unit_serial_number *inq;
+
+	if (!status) {
+		inq = scsi_datain_unmarshall(task);
+		if (inq != NULL) {
+			if (!iscsi->unit_serial_number[0]) {
+				ISCSI_LOG(iscsi, 2, "unit serial number is [%s]", inq->usn);
+				strncpy(iscsi->unit_serial_number, inq->usn, MAX_STRING_SIZE);
+			} else if (strncmp(iscsi->unit_serial_number, inq->usn, MAX_STRING_SIZE)) {
+				iscsi_set_error(iscsi, "unit serial number mismatch. got [%s] expected [%s]",
+												inq->usn, iscsi->unit_serial_number);
+				status = 1;
+			} else {
+				ISCSI_LOG(iscsi, 2, "successfully validated unit serial number [%s]", inq->usn);
+			}
+		} else {
+			iscsi_set_error(iscsi, "iscsi_inquiry_task datain_unmarshall failed. could not read vpd page 0x80.");
+			status = 1;
+		}
+	} else {
+		iscsi_set_error(iscsi, "iscsi_inquiry_task failed. could not read vpd page 0x80.");
+	}
+
+	ct->cb(iscsi, status?SCSI_STATUS_ERROR:SCSI_STATUS_GOOD, NULL, ct->private_data);
+	scsi_free_scsi_task(task);
+	iscsi_free(iscsi, ct);
+}
+
 static void
 iscsi_testunitready_cb(struct iscsi_context *iscsi, int status,
 		       void *command_data, void *private_data)
@@ -137,10 +186,21 @@ iscsi_testunitready_cb(struct iscsi_context *iscsi, int status,
 		status = 0;
 	}
 
-	ct->cb(iscsi, status?SCSI_STATUS_ERROR:SCSI_STATUS_GOOD, NULL,
-	       ct->private_data);
-	scsi_free_scsi_task(task);
-	iscsi_free(iscsi, ct);
+	if (status != 0) {
+		ct->cb(iscsi, SCSI_STATUS_ERROR, NULL,
+		       ct->private_data);
+		scsi_free_scsi_task(task);
+		iscsi_free(iscsi, ct);
+		return;
+	}
+
+	if (iscsi_inquiry_page_0x80_connect(iscsi, ct->lun,
+		                                  iscsi_inquiry_page_0x80_cb,
+		                                  ct) == NULL) {
+		iscsi_set_error(iscsi, "iscsi_inquiry_task failed.");
+		ct->cb(iscsi, SCSI_STATUS_ERROR, NULL, ct->private_data);
+		iscsi_free(iscsi, ct);
+	}
 }
 
 static void
@@ -178,8 +238,13 @@ iscsi_login_cb(struct iscsi_context *iscsi, int status, void *command_data,
 			iscsi_free(iscsi, ct);
 		}
 	} else {
-		ct->cb(iscsi, SCSI_STATUS_GOOD, NULL, ct->private_data);
-		iscsi_free(iscsi, ct);
+		if (iscsi_inquiry_page_0x80_connect(iscsi, ct->lun,
+						iscsi_inquiry_page_0x80_cb,
+						ct) == NULL) {
+			iscsi_set_error(iscsi, "iscsi_inquiry_task failed.");
+			ct->cb(iscsi, SCSI_STATUS_ERROR, NULL, ct->private_data);
+			iscsi_free(iscsi, ct);
+		}
 	}
 }
 
@@ -371,7 +436,7 @@ void iscsi_reconnect_cb(struct iscsi_context *iscsi, int status,
 	iscsi->frees += old_iscsi->frees;
 
 	free(old_iscsi);
-	
+
 	/* avoid a reconnect faster than 3 seconds */
 	iscsi->next_reconnect = time(NULL) + 3;
 
@@ -443,10 +508,12 @@ static int reconnect(struct iscsi_context *iscsi, int force)
 	tmp_iscsi->lun = iscsi->lun;
 
 	strncpy(tmp_iscsi->portal, iscsi->portal, MAX_STRING_SIZE);
-	
+
 	strncpy(tmp_iscsi->bind_interfaces, iscsi->bind_interfaces, MAX_STRING_SIZE);
 	tmp_iscsi->bind_interfaces_cnt = iscsi->bind_interfaces_cnt;
-	
+
+	strncpy(tmp_iscsi->unit_serial_number, iscsi->unit_serial_number, MAX_STRING_SIZE);
+
 	tmp_iscsi->log_level = iscsi->log_level;
 	tmp_iscsi->log_fn = iscsi->log_fn;
 	tmp_iscsi->tcp_user_timeout = iscsi->tcp_user_timeout;

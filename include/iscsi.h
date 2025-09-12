@@ -198,7 +198,7 @@ iscsi_get_auth(struct iscsi_context *iscsi);
 
 EXTERN void
 iscsi_set_auth(struct iscsi_context *iscsi, enum iscsi_chap_auth auth);
-        
+
 /*
  * This function is used to parse an iSCSI URL into a iscsi_url structure.
  * iSCSI URL format :
@@ -300,6 +300,24 @@ EXTERN int iscsi_set_alias(struct iscsi_context *iscsi, const char *alias);
  * <0: error
  */
 EXTERN int iscsi_set_targetname(struct iscsi_context *iscsi, const char *targetname);
+
+/*
+ * Set the unit serial number (usn) as reported by VPD page 0x80.
+ * If set the usn is validated after logging in and especially after reconnecting
+ * to a target to avoid accidently mismatch between LUN ids on the same target.
+ * If not set explicitely the usn is learned at the first successful login to the target.
+ *
+ * Returns:
+ *  0: success
+ * <0: error
+ */
+EXTERN int iscsi_set_unit_serial_number(struct iscsi_context *iscsi, const char *usn);
+
+/*
+ * This function returns a pointer to the unit serial number that is valid if explicitely
+ * set or after the first successful login to the target.
+ */
+EXTERN const char *iscsi_get_unit_serial_number(struct iscsi_context *iscsi);
 
 /*
  * This function returns any target address supplied in a login response when
@@ -685,7 +703,7 @@ EXTERN void iscsi_free_discovery_data(struct iscsi_context *iscsi,
  *                           structure containing the data returned from
  *                           the server.
  *    SCSI_STATUS_CANCELLED : Discovery was aborted. Command_data is NULL.
- * 
+ *
  * The callback may be NULL if you only want to let libiscsi count the in-flight
  * NOPs.
  */
@@ -1684,7 +1702,7 @@ iscsi_set_noautoreconnect(struct iscsi_context *iscsi, int state);
 
 
 /* This function is to set if we should retry a failed reconnect
-   
+
    count is defined as follows:
     -1 -> retry forever (default)
     0  -> never retry
@@ -1707,7 +1725,7 @@ iscsi_set_fd_dup_cb(struct iscsi_context *iscsi,
 
 /*
  * MULTITHREADING
- */        
+ */
 /*
  * This function starts a separate service thread for multithreading support.
  */
@@ -1716,7 +1734,7 @@ EXTERN int iscsi_mt_service_thread_start(struct iscsi_context *iscsi);
  * Shutdown multithreading support.
  */
 EXTERN void iscsi_mt_service_thread_stop(struct iscsi_context *iscsi);
-        
+
 #ifdef __cplusplus
 }
 #endif
