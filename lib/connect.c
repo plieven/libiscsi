@@ -237,7 +237,7 @@ iscsi_login_cb(struct iscsi_context *iscsi, int status, void *command_data,
 			ct->cb(iscsi, SCSI_STATUS_ERROR, NULL, ct->private_data);
 			iscsi_free(iscsi, ct);
 		}
-	} else {
+	} else if (ct->lun != -1) {
 		if (iscsi_inquiry_page_0x80_connect(iscsi, ct->lun,
 						iscsi_inquiry_page_0x80_cb,
 						ct) == NULL) {
@@ -245,6 +245,10 @@ iscsi_login_cb(struct iscsi_context *iscsi, int status, void *command_data,
 			ct->cb(iscsi, SCSI_STATUS_ERROR, NULL, ct->private_data);
 			iscsi_free(iscsi, ct);
 		}
+	} else {
+		ct->cb(iscsi, SCSI_STATUS_GOOD, NULL, ct->private_data);
+		iscsi_free(iscsi, ct);
+		return;
 	}
 }
 
