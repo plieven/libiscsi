@@ -117,8 +117,7 @@ iscsi_login_add_targetname(struct iscsi_context *iscsi, struct iscsi_pdu *pdu)
 		return -1;
 	}
 
-	if (iscsi->target_address[0] && iscsi->target_name2[0] &&
-		  getenv("LIBISCSI_ALLOW_TARGETNAME_REDIRECT") != NULL) {
+	if (iscsi->target_address[0] && iscsi->target_name2[0]) {
 		if (snprintf(str, MAX_STRING_SIZE, "TargetName=%s", iscsi->target_name2) == -1) {
 			iscsi_set_error(iscsi, "Out-of-memory: aprintf failed.");
 			return -1;
@@ -1499,7 +1498,7 @@ iscsi_process_login_reply(struct iscsi_context *iscsi, struct iscsi_pdu *pdu,
 
 	if (status == SCSI_STATUS_REDIRECT && iscsi->target_address[0]) {
 		ISCSI_LOG(iscsi, 2, "target requests redirect to portal %s",iscsi->target_address);
-		if (iscsi->target_name2[0] && getenv("LIBISCSI_ALLOW_TARGETNAME_REDIRECT") != NULL) {
+		if (iscsi->target_name2[0]) {
 			ISCSI_LOG(iscsi, 2, "target requests redirect to targetname %s (non-RFC-compliant!)",iscsi->target_name2);
 		}
 		if (pdu->callback) {
